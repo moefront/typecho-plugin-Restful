@@ -1,7 +1,6 @@
 <?php
 class Restful_Action implements Widget_Interface_Do
 {
-
     private $config;
     private $db;
     private $response;
@@ -32,11 +31,15 @@ class Restful_Action implements Widget_Interface_Do
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
         $allowedHttpOrigins = explode("\n", $this->config->origin);
 
+        if (!$httpOrigin) {
+            return;
+        }
+
         if (in_array($httpOrigin, $allowedHttpOrigins)) {
             $this->response->setHeader('Access-Control-Allow-Origin', $httpOrigin);
         }
 
-        if (strtolower($_SERVER['REQUEST_METHOD']) == 'options') {
+        if (strtolower($this->request->getServer('REQUEST_METHOD')) == 'options') {
             Typecho_Response::setStatus(204);
             $this->response->setHeader('Access-Control-Allow-Headers', 'Origin, No-Cache, X-Requested-With, If-Modified-Since, Pragma, Last-Modified, Cache-Control, Expires, Content-Type');
             $this->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -67,9 +70,9 @@ class Restful_Action implements Widget_Interface_Do
         return $this->params[$key];
     }
 
-    private function throwError($message = 'Unknown')
+    private function throwError($message = 'unknown', $status = 400)
     {
-        Typecho_Response::setStatus(400);
+        Typecho_Response::setStatus($status);
         $this->response->throwJson([
             'status' => 'error',
             'message' => $message,
@@ -90,7 +93,7 @@ class Restful_Action implements Widget_Interface_Do
     {
         $method = strtolower($method);
         if (strtolower($this->request->getServer('REQUEST_METHOD')) != $method) {
-            $this->throwError('method not allowed');
+            $this->throwError('method not allowed', 405);
         }
     }
 
@@ -102,7 +105,6 @@ class Restful_Action implements Widget_Interface_Do
         $page = $this->getParams('page', 1);
         $page = is_numeric($page) ? $page : 1;
         $offset = $pageSize * ($page - 1);
-        $date = $this->getParams('date');
 
         $filterType = trim($this->getParams('filterType', ''));
         $filterSlug = trim($this->getParams('filterSlug', ''));
@@ -164,7 +166,7 @@ class Restful_Action implements Widget_Interface_Do
 
             $result[$key] = $this->filter($result[$key]);
         }
-        
+
         $this->throwData([
             'page' => (int) $page,
             'pageSize' => (int) $pageSize,
@@ -215,7 +217,7 @@ class Restful_Action implements Widget_Interface_Do
             $result = $this->filter($result);
             $this->throwData($result);
         } else {
-            $this->throwError('post not exists');
+            $this->throwError('post not exists', 404);
         }
 
     }
@@ -287,16 +289,17 @@ class Restful_Action implements Widget_Interface_Do
         if (count($result) != 0) {
             $result = $this->filter($result);
         } else {
-            $this->throwError('post not exists');
+            $this->throwError('post not exists', 404);
         }
 
         $commentUrl = Typecho_Router::url('feedback',
             ['type' => 'comment', 'permalink' => $result['pathinfo']], $this->options->index);
 
-        // TODO IP
-
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $commentUrl);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-TYPECHO-RESTFUL-IP: ' . $this->request->getIp(),
+        ]);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_USERAGENT, $this->request->getAgent());
@@ -310,16 +313,19 @@ class Restful_Action implements Widget_Interface_Do
             '_' => Helper::security()->getToken($result['permalink']),
         ]));
         $data = curl_exec($ch);
-        curl_close($ch);
 
         if (curl_error($ch)) {
             $this->throwError('comment failed');
         }
 
-        preg_match('/<div class=\"container\">(.*?)<\/div>/s', $data, $matches);
+        curl_close($ch);
 
-        if (isset($matches[1])) {
-            $this->throwError(trim($matches[1]));
+        preg_match('!(<title[^>]*>)(.*)(</title>)!i', $data, $matches);
+        if (isset($matches[2]) && $matches[2] == 'Error') {
+            preg_match('/<div class=\"container\">(.*?)<\/div>/s', $data, $matches);
+            if (isset($matches[1])) {
+                $this->throwError(trim($matches[1]));
+            }
         }
 
         $this->throwData(null);
