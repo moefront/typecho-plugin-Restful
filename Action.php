@@ -295,6 +295,19 @@ class Restful_Action implements Widget_Interface_Do
         $commentUrl = Typecho_Router::url('feedback',
             ['type' => 'comment', 'permalink' => $result['pathinfo']], $this->options->index);
 
+        $postData = [
+            'text' => $this->getParams('text', ''),
+            'author' => $this->getParams('author', ''),
+            'mail' => $this->getParams('mail', ''),
+            'url' => $this->getParams('url', ''),
+            '_' => Helper::security()->getToken($result['permalink']),
+        ];
+
+        $parent = $this->getParams('parent', '');
+        if (is_numeric($parent)) {
+            $postData['parent'] = $parent;
+        }
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $commentUrl);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -305,13 +318,7 @@ class Restful_Action implements Widget_Interface_Do
         curl_setopt($ch, CURLOPT_USERAGENT, $this->request->getAgent());
         curl_setopt($ch, CURLOPT_REFERER, $result['permalink']);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'text' => $this->getParams('text', ''),
-            'author' => $this->getParams('author', ''),
-            'mail' => $this->getParams('mail', ''),
-            'url' => $this->getParams('url', ''),
-            '_' => Helper::security()->getToken($result['permalink']),
-        ]));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
         $data = curl_exec($ch);
 
         if (curl_error($ch)) {

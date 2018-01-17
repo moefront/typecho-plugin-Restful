@@ -86,11 +86,10 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         $request = Typecho_Request::getInstance();
 
         $customIp = $request->getServer('HTTP_X_TYPECHO_RESTFUL_IP');
-        if ($customIp == null) {
-            return $comment;
+        if ($customIp != null) {
+            $comment['ip'] = $customIp;
         }
 
-        $comment['ip'] = $customIp;
         return $comment;
     }
 
