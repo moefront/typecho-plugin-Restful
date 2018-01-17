@@ -31,6 +31,10 @@ class Restful_Action implements Widget_Interface_Do
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
         $allowedHttpOrigins = explode("\n", $this->config->origin);
 
+        if (!$httpOrigin) {
+            return;
+        }
+
         if (in_array($httpOrigin, $allowedHttpOrigins)) {
             $this->response->setHeader('Access-Control-Allow-Origin', $httpOrigin);
         }
