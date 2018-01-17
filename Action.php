@@ -260,6 +260,7 @@ class Restful_Action implements Widget_Interface_Do
         $offset = $pageSize * ($page - 1);
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
+        $order = strtolower($this->getParams('order', ''));
 
         $select = $this->db->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text')
             ->from('table.comments')
@@ -267,7 +268,7 @@ class Restful_Action implements Widget_Interface_Do
             ->where('table.comments.type = ?', 'comment')
             ->where('table.comments.status = ?', 'approved')
             ->group('table.comments.coid')
-            ->order('table.comments.created', Typecho_Db::SORT_DESC);
+            ->order('table.comments.created', $order === 'ASC' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
 
         if (is_numeric($cid)) {
             $select->where('table.comments.cid = ?', $cid);
