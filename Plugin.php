@@ -28,6 +28,7 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         Helper::addRoute('rest_post', '/api/post', self::ACTION_CLASS, 'postAction');
         Helper::addRoute('rest_comments', '/api/comments', self::ACTION_CLASS, 'commentsAction');
         Helper::addRoute('rest_comment', '/api/comment', self::ACTION_CLASS, 'commentAction');
+        Typecho_Plugin::factory('Widget_Feedback')->comment = [__CLASS__, 'comment'];
     }
 
     /**
@@ -69,5 +70,23 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function personalConfig(Typecho_Widget_Helper_Form $form)
     {}
+
+    /**
+     * 构造评论真实IP
+     *
+     * @return array
+     */
+    public static function comment($comment, $post)
+    {
+        $request = Typecho_Request::getInstance();
+
+        $customIp = $request->getServer('HTTP_X_TYPECHO_RESTFUL_IP');
+        if ($customIp == null) {
+            return $comment;
+        }
+
+        $comment['ip'] = $customIp;
+        return $comment;
+    }
 
 }
