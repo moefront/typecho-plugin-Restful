@@ -196,6 +196,34 @@ class Restful_Action implements Widget_Interface_Do
         ]);
     }
 
+    public function categoriesAction()
+    {
+        $this->lockMethod('get');
+
+        $categories = Typecho_Widget::widget('Widget_Metas_Category_List');
+
+        $reflect = new ReflectionObject($categories);
+        $map = $reflect->getProperty('_map');
+        $map->setAccessible(true);
+
+        $this->throwData(array_merge($map->getValue($categories)));
+    }
+
+    public function tagsAction()
+    {
+        $this->lockMethod('get');
+
+        Typecho_Widget::widget('Widget_Metas_Tag_Cloud')->to($tags);
+
+        if ($tags->have()) {
+            while ($tags->next()) {
+                $this->throwData($tags->stack);
+            }
+        }
+
+        $this->throwError('no tag', 404);
+    }
+
     public function postAction()
     {
         $this->lockMethod('get');
@@ -295,6 +323,19 @@ class Restful_Action implements Widget_Interface_Do
         $commentUrl = Typecho_Router::url('feedback',
             ['type' => 'comment', 'permalink' => $result['pathinfo']], $this->options->index);
 
+        $postData = [
+            'text' => $this->getParams('text', ''),
+            'author' => $this->getParams('author', ''),
+            'mail' => $this->getParams('mail', ''),
+            'url' => $this->getParams('url', ''),
+            '_' => Helper::security()->getToken($result['permalink']),
+        ];
+
+        $parent = $this->getParams('parent', '');
+        if (is_numeric($parent)) {
+            $postData['parent'] = $parent;
+        }
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $commentUrl);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -305,13 +346,7 @@ class Restful_Action implements Widget_Interface_Do
         curl_setopt($ch, CURLOPT_USERAGENT, $this->request->getAgent());
         curl_setopt($ch, CURLOPT_REFERER, $result['permalink']);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'text' => $this->getParams('text', ''),
-            'author' => $this->getParams('author', ''),
-            'mail' => $this->getParams('mail', ''),
-            'url' => $this->getParams('url', ''),
-            '_' => Helper::security()->getToken($result['permalink']),
-        ]));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
         $data = curl_exec($ch);
 
         if (curl_error($ch)) {
@@ -329,6 +364,18 @@ class Restful_Action implements Widget_Interface_Do
         }
 
         $this->throwData(null);
+    }
+
+    public function settingsAction()
+    {
+        $this->lockMethod('get');
+
+        $this->throwData([
+            'title' => $this->options->title,
+            'description' => $this->options->description,
+            'keywords' => $this->options->keywords,
+            'timezone' => $this->options->timezone,
+        ]);
     }
 
     /**

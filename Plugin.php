@@ -14,6 +14,17 @@ class Restful_Plugin implements Typecho_Plugin_Interface
 {
     const ACTION_CLASS = 'Restful_Action';
 
+    const ROUTES = [
+        'posts',
+        'pages',
+        'categories',
+        'tags',
+        'post',
+        'comments',
+        'comment',
+        'settings',
+    ];
+
     /**
      * 激活插件方法,如果激活失败,直接抛出异常
      *
@@ -23,11 +34,9 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function activate()
     {
-        Helper::addRoute('rest_posts', '/api/posts', self::ACTION_CLASS, 'postsAction');
-        Helper::addRoute('rest_pages', '/api/pages', self::ACTION_CLASS, 'pagesAction');
-        Helper::addRoute('rest_post', '/api/post', self::ACTION_CLASS, 'postAction');
-        Helper::addRoute('rest_comments', '/api/comments', self::ACTION_CLASS, 'commentsAction');
-        Helper::addRoute('rest_comment', '/api/comment', self::ACTION_CLASS, 'commentAction');
+        foreach (self::ROUTES as $route) {
+            Helper::addRoute('rest_' . $route, '/api/' . $route, self::ACTION_CLASS, $route . 'Action');
+        }
         Typecho_Plugin::factory('Widget_Feedback')->comment = [__CLASS__, 'comment'];
     }
 
@@ -41,11 +50,9 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function deactivate()
     {
-        Helper::removeRoute('rest_posts');
-        Helper::removeRoute('rest_pages');
-        Helper::removeRoute('rest_post');
-        Helper::removeRoute('rest_comments');
-        Helper::removeRoute('rest_comment');
+        foreach (self::ROUTES as $route) {
+            Helper::removeRoute('rest_' . $route);
+        }
     }
 
     /**
@@ -81,11 +88,10 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         $request = Typecho_Request::getInstance();
 
         $customIp = $request->getServer('HTTP_X_TYPECHO_RESTFUL_IP');
-        if ($customIp == null) {
-            return $comment;
+        if ($customIp != null) {
+            $comment['ip'] = $customIp;
         }
 
-        $comment['ip'] = $customIp;
         return $comment;
     }
 
