@@ -106,6 +106,7 @@ class Restful_Action implements Widget_Interface_Do
 
         $filterType = trim($this->getParams('filterType', ''));
         $filterSlug = trim($this->getParams('filterSlug', ''));
+        $showContent = trim($this->getParams('showContent', '')) === 'true';
 
         if (in_array($filterType, ['category', 'tag'])) {
             if ($filterSlug == '') {
@@ -140,7 +141,7 @@ class Restful_Action implements Widget_Interface_Do
             }
         }
 
-        $select = $this->db->select('cid', 'title', 'created', 'slug', 'commentsNum')
+        $select = $this->db->select('cid', 'title', 'created', 'modified', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
             ->where('type = ?', 'post')
             ->where('status = ?', 'publish')
@@ -157,9 +158,13 @@ class Restful_Action implements Widget_Interface_Do
             ->limit($pageSize);
         $result = $this->db->fetchAll($select);
         foreach ($result as $key => $value) {
+            if (!$showContent) {
+                unset($result[$key]['text']);
+            }
+
             $result[$key] = $this->filter($result[$key]);
         }
-
+        
         $this->throwData([
             'page' => (int) $page,
             'pageSize' => (int) $pageSize,
