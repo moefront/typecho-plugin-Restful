@@ -163,7 +163,6 @@ class Restful_Action implements Widget_Interface_Do
             if (!$showContent) {
                 unset($result[$key]['text']);
             }
-
             $result[$key] = $this->filter($result[$key]);
         }
 
@@ -199,14 +198,16 @@ class Restful_Action implements Widget_Interface_Do
     public function categoriesAction()
     {
         $this->lockMethod('get');
-
         $categories = Typecho_Widget::widget('Widget_Metas_Category_List');
 
-        $reflect = new ReflectionObject($categories);
-        $map = $reflect->getProperty('_map');
-        $map->setAccessible(true);
-
-        $this->throwData(array_merge($map->getValue($categories)));
+        if (isset($categories->stack)) {
+            $this->throwData($categories->stack);
+        } else {
+            $reflect = new ReflectionObject($categories);
+            $map = $reflect->getProperty('_map');
+            $map->setAccessible(true);
+            $this->throwData(array_merge($map->getValue($categories)));
+        }
     }
 
     public function tagsAction()
@@ -260,6 +261,7 @@ class Restful_Action implements Widget_Interface_Do
         $offset = $pageSize * ($page - 1);
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
+        $order = strtolower($this->getParams('order', ''));
 
         $select = $this->db->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text')
             ->from('table.comments')
@@ -267,7 +269,7 @@ class Restful_Action implements Widget_Interface_Do
             ->where('table.comments.type = ?', 'comment')
             ->where('table.comments.status = ?', 'approved')
             ->group('table.comments.coid')
-            ->order('table.comments.created', Typecho_Db::SORT_DESC);
+            ->order('table.comments.created', $order === 'asc' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
 
         if (is_numeric($cid)) {
             $select->where('table.comments.cid = ?', $cid);
@@ -402,8 +404,25 @@ class Restful_Action implements Widget_Interface_Do
 
     private function filter($value)
     {
-        $value = Typecho_Widget::widget('Widget_Abstract_Contents')->filter($value);
-        $value['text'] = Typecho_Widget::widget('Widget_Abstract_Contents')->markdown($value['text']);
+        $contentWidget = Typecho_Widget::widget('Widget_Abstract_Contents');
+
+        if (method_exists($contentWidget, 'markdown')) {
+            $value = $contentWidget->filter($value);
+            $value['text'] = $contentWidget->markdown($value['text']);
+        } else {
+            // Typecho 0.9 compatibility
+            $value['type'] = isset($value['type']) ? $value['type'] : null;
+            $value['text'] = isset($value['text']) ? $value['text'] : null;
+            $value = $contentWidget->filter($value);
+            $value['text'] = MarkdownExtraExtended::defaultTransform($value['text']);
+            if ($value['type'] === null) {
+                unset($value['type']);
+            }
+            if (empty(trim($value['text']))) {
+                unset($value['text']);
+            }
+        }
+        
         return $value;
     }
 
