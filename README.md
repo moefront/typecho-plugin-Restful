@@ -8,12 +8,13 @@
 
 `GET /api/posts`
 
-| 参数       |                 |
-| ---------- | --------------- |
-| page       | 当前页          | 可选 |
-| pageSize   | 分页数          | 可选 |
-| filterType | category 或 tag | 可选 |
-| filterSlug | 分类名或标签名  | 可选 |
+| 参数        | 类型   | 描述                 |      |
+| ----------- | ------ | -------------------- |------|
+| page        | int    | 当前页               | 可选 |
+| pageSize    | int    | 分页数               | 可选 |
+| filterType  | string | category 或 tag      | 可选 |
+| filterSlug  | string | 分类名或标签名       | 可选 |
+| showContent | bool   | 是否显示文章具体内容 | 可选 |
 
 ### 页面列表
 
@@ -23,17 +24,16 @@
 
 `GET /api/post`
 
-| 参数     |        |
-| -------- | ------ |
-| page     | 当前页 | 可选 |
-| pageSize | 分页数 | 可选 |
-| date     | 时间   | 可选 |
+| 参数     | 描述          |        |
+| -------- | ------------- | ------ |
+| cid      | 文章/页面 ID  | 二选一 |
+| slug     | 文章/页面别名 | 二选一 |
 
 ### 评论列表
 
 `GET /api/comments`
 
-| 参数     |          |        |
+| 参数     | 描述     |        |
 | -------- | -------- | ------ |
 | page     | 当前页   | 可选   |
 | pageSize | 分页数   | 可选   |
@@ -46,7 +46,7 @@
 
 PS：此处`Content-Type`为`application/json`
 
-| 参数   |          |        |
+| 参数   | 描述     |        |
 | ------ | -------- | ------ |
 | cid    | 文章 ID  | 二选一 |
 | slug   | 文章别名 | 二选一 |
