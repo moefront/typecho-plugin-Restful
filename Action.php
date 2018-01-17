@@ -413,7 +413,7 @@ class Restful_Action implements Widget_Interface_Do
             // Typecho 0.9 compatibility
             $value['type'] = isset($value['type']) ? $value['type'] : null;
             $value['text'] = isset($value['text']) ? $value['text'] : null;
-            $vlaue = $contentWidget->filter($value);
+            $value = $contentWidget->filter($value);
             $value['text'] = MarkdownExtraExtended::defaultTransform($value['text']);
             if ($value['type'] === null) {
                 unset($value['type']);
