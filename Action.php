@@ -331,6 +331,16 @@ class Restful_Action implements Widget_Interface_Do
         $this->throwData(null);
     }
 
+    public function settingsAction()
+    {
+        $this->throwData([
+            'title' => $this->options->title,
+            'description' => $this->options->description,
+            'keywords' => $this->options->keywords,
+            'timezone' => $this->options->timezone,
+        ]);
+    }
+
     /**
      * 创建子节点树形数组
      * 参数
