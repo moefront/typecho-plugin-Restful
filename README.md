@@ -20,6 +20,14 @@
 
 `GET /api/pages`
 
+### 分类列表
+
+`GET /api/categories`
+
+### 标签列表
+
+`GET /api/tags`
+
 ### 文章/页面详情
 
 `GET /api/post`

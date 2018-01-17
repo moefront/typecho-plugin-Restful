@@ -17,6 +17,8 @@ class Restful_Plugin implements Typecho_Plugin_Interface
     const ROUTES = [
         'posts',
         'pages',
+        'categories',
+        'tags',
         'post',
         'comments',
         'comment',

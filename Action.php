@@ -196,6 +196,34 @@ class Restful_Action implements Widget_Interface_Do
         ]);
     }
 
+    public function categoriesAction()
+    {
+        $this->lockMethod('get');
+
+        $categories = Typecho_Widget::widget('Widget_Metas_Category_List');
+
+        $reflect = new ReflectionObject($categories);
+        $map = $reflect->getProperty('_map');
+        $map->setAccessible(true);
+
+        $this->throwData(array_merge($map->getValue($categories)));
+    }
+
+    public function tagsAction()
+    {
+        $this->lockMethod('get');
+
+        Typecho_Widget::widget('Widget_Metas_Tag_Cloud')->to($tags);
+
+        if ($tags->have()) {
+            while ($tags->next()) {
+                $this->throwData($tags->stack);
+            }
+        }
+
+        $this->throwError('no tag', 404);
+    }
+
     public function postAction()
     {
         $this->lockMethod('get');
@@ -340,6 +368,8 @@ class Restful_Action implements Widget_Interface_Do
 
     public function settingsAction()
     {
+        $this->lockMethod('get');
+
         $this->throwData([
             'title' => $this->options->title,
             'description' => $this->options->description,
