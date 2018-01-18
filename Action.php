@@ -148,7 +148,8 @@ class Restful_Action implements Widget_Interface_Do
             }
         }
 
-        $select = $this->db->select('cid', 'title', 'created', 'modified', 'slug', 'commentsNum', 'text')
+        $select = $this->db
+            ->select('cid', 'title', 'created', 'modified', 'slug', 'commentsNum', 'text', 'type')
             ->from('table.contents')
             ->where('type = ?', 'post')
             ->where('status = ?', 'publish')
@@ -184,7 +185,8 @@ class Restful_Action implements Widget_Interface_Do
     {
         $this->lockMethod('get');
 
-        $select = $this->db->select('cid', 'title', 'created', 'slug')
+        $select = $this->db
+            ->select('cid', 'title', 'created', 'slug')
             ->from('table.contents')
             ->where('type = ?', 'page')
             ->where('status = ?', 'publish')
@@ -237,7 +239,8 @@ class Restful_Action implements Widget_Interface_Do
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
 
-        $select = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
+        $select = $this->db
+            ->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
             ->where('password IS NULL');
 
@@ -269,7 +272,8 @@ class Restful_Action implements Widget_Interface_Do
         $cid = $this->getParams('cid', '');
         $order = strtolower($this->getParams('order', ''));
 
-        $select = $this->db->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text')
+        $select = $this->db
+            ->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text')
             ->from('table.comments')
             ->join('table.contents', 'table.comments.cid = table.contents.cid', Typecho_Db::LEFT_JOIN)
             ->where('table.comments.type = ?', 'comment')
@@ -287,7 +291,7 @@ class Restful_Action implements Widget_Interface_Do
 
         $newResult = $this->findChild($result, 'coid', 'parent');
         foreach ($newResult as $index => $comment) {
-            if ($comment['parent'] != 0) {
+            if (isset($comment['parent']) && $comment['parent'] != 0) {
                 unset($newResult[$index]);
             }
         }
@@ -412,6 +416,7 @@ class Restful_Action implements Widget_Interface_Do
     private function filter($value)
     {
         $contentWidget = Typecho_Widget::widget('Widget_Abstract_Contents');
+        $value['text'] = isset($value['text']) ? $value['text'] : null;
 
         if (method_exists($contentWidget, 'markdown')) {
             $value = $contentWidget->filter($value);
@@ -419,7 +424,6 @@ class Restful_Action implements Widget_Interface_Do
         } else {
             // Typecho 0.9 compatibility
             $value['type'] = isset($value['type']) ? $value['type'] : null;
-            $value['text'] = isset($value['text']) ? $value['text'] : null;
             $value = $contentWidget->filter($value);
             $value['text'] = MarkdownExtraExtended::defaultTransform($value['text']);
             if ($value['type'] === null) {
