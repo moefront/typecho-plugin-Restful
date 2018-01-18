@@ -6,9 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
  * Typecho Restful 插件
  *
  * @package Restful
- * @author Kokororin
+ * @author MoeFront Studio
  * @version 1.0.0
- * @link https://kotori.love
+ * @link https://moefront.github.io
  */
 class Restful_Plugin implements Typecho_Plugin_Interface
 {

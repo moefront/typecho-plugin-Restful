@@ -1,4 +1,8 @@
 <?php
+if (!defined('__TYPECHO_ROOT_DIR__')) {
+    exit;
+}
+
 class Restful_Action implements Widget_Interface_Do
 {
     private $config;
@@ -422,7 +426,7 @@ class Restful_Action implements Widget_Interface_Do
                 unset($value['text']);
             }
         }
-        
+
         return $value;
     }
 
