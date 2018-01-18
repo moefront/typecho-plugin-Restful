@@ -99,9 +99,24 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
     }
 
+    /**
+     * show errors when accessing a disabled API
+     *
+     * @param [string] $route
+     * @return void
+     */
+    private function checkState($route)
+    {
+        $state = $this->config->$route;
+        if (!$state) {
+            $this->throwError('This API has been disabled.', 403);
+        }
+    }
+
     public function postsAction()
     {
         $this->lockMethod('get');
+        $this->checkState('posts');
 
         $pageSize = $this->getParams('pageSize', 5);
         $page = $this->getParams('page', 1);
@@ -189,6 +204,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function pagesAction()
     {
         $this->lockMethod('get');
+        $this->checkState('pages');
 
         $select = $this->db
             ->select('cid', 'title', 'created', 'slug')
@@ -211,6 +227,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function categoriesAction()
     {
         $this->lockMethod('get');
+        $this->checkState('categories');
         $categories = $this->widget('Widget_Metas_Category_List');
 
         if (isset($categories->stack)) {
@@ -226,6 +243,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function tagsAction()
     {
         $this->lockMethod('get');
+        $this->checkState('tags');
 
         $this->widget('Widget_Metas_Tag_Cloud')->to($tags);
 
@@ -241,6 +259,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function postAction()
     {
         $this->lockMethod('get');
+        $this->checkState('post');
+
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
 
@@ -268,6 +288,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function commentsAction()
     {
         $this->lockMethod('get');
+        $this->checkState('comments');
 
         $pageSize = $this->getParams('pageSize', 5);
         $page = $this->getParams('page', 1);
@@ -317,6 +338,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function commentAction()
     {
         $this->lockMethod('post');
+        $this->checkState('comment');
 
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
@@ -387,6 +409,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function settingsAction()
     {
         $this->lockMethod('get');
+        $this->checkState('settings');
 
         $this->throwData([
             'title' => $this->options->title,
