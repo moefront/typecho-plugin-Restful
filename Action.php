@@ -391,6 +391,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         curl_setopt($ch, CURLOPT_REFERER, $result['permalink']);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);                    // no verify ssl
         $data = curl_exec($ch);
 
         if (curl_error($ch)) {
