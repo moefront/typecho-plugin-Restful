@@ -114,36 +114,39 @@ class Restful_Action implements Widget_Interface_Do
         $filterSlug = trim($this->getParams('filterSlug', ''));
         $showContent = trim($this->getParams('showContent', '')) === 'true';
 
-        if (in_array($filterType, ['category', 'tag'])) {
+        if (in_array($filterType, ['category', 'tag', 'search'])) {
             if ($filterSlug == '') {
                 $this->throwError('filter slug is empty');
             }
-            $select = $this->db->select('mid')
-                ->from('table.metas')
-                ->where('type = ?', $filterType)
-                ->where('slug = ?', $filterSlug);
 
-            $row = $this->db->fetchRow($select);
-            if (!isset($row['mid'])) {
-                $this->throwError('unknown slug name');
-            }
-            $mid = $row['mid'];
-            $select = $this->db->select('cid')->from('table.relationships')
-                ->where('mid = ?', $mid);
+            if ($filterType != 'search') {
+                $select = $this->db->select('mid')
+                    ->from('table.metas')
+                    ->where('type = ?', $filterType)
+                    ->where('slug = ?', $filterSlug);
 
-            $cids = $this->db->fetchAll($select);
+                $row = $this->db->fetchRow($select);
+                if (!isset($row['mid'])) {
+                    $this->throwError('unknown slug name');
+                }
+                $mid = $row['mid'];
+                $select = $this->db->select('cid')->from('table.relationships')
+                    ->where('mid = ?', $mid);
 
-            if (count($cids) == 0) {
-                $this->throwData([
-                    'page' => (int) $page,
-                    'pageSize' => (int) $pageSize,
-                    'pages' => 0,
-                    'count' => 0,
-                    'dataSet' => [],
-                ]);
-            } else {
-                foreach ($cids as $key => $cid) {
-                    $cids[$key] = $cids[$key]['cid'];
+                $cids = $this->db->fetchAll($select);
+
+                if (count($cids) == 0) {
+                    $this->throwData([
+                        'page' => (int) $page,
+                        'pageSize' => (int) $pageSize,
+                        'pages' => 0,
+                        'count' => 0,
+                        'dataSet' => [],
+                    ]);
+                } else {
+                    foreach ($cids as $key => $cid) {
+                        $cids[$key] = $cids[$key]['cid'];
+                    }
                 }
             }
         }
@@ -159,6 +162,10 @@ class Restful_Action implements Widget_Interface_Do
         if (isset($cids)) {
             $cidStr = implode(',', $cids);
             $select->where('cid IN (' . $cidStr . ')');
+        } elseif ($filterType == 'search') {
+            // Widget_Archive::searchHandle()
+            $searchQuery = '%' . str_replace(' ', '%', $filterSlug) . '%';
+            $select->where('title LIKE ? OR text LIKE ?', $searchQuery, $searchQuery);
         }
 
         $count = count($this->db->fetchAll($select));
