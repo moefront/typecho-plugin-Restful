@@ -38,6 +38,8 @@ class Restful_Plugin implements Typecho_Plugin_Interface
             Helper::addRoute('rest_' . $route, '/api/' . $route, self::ACTION_CLASS, $route . 'Action');
         }
         Typecho_Plugin::factory('Widget_Feedback')->comment = [__CLASS__, 'comment'];
+
+        return '_(:з」∠)_';
     }
 
     /**
@@ -53,6 +55,8 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         foreach (self::ROUTES as $route) {
             Helper::removeRoute('rest_' . $route);
         }
+
+        return '( ≧Д≦)';
     }
 
     /**

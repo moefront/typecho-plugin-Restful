@@ -137,6 +137,7 @@ class Restful_Action implements Widget_Interface_Do
                 $this->throwData([
                     'page' => (int) $page,
                     'pageSize' => (int) $pageSize,
+                    'pages' => 0,
                     'count' => 0,
                     'dataSet' => [],
                 ]);
@@ -173,6 +174,7 @@ class Restful_Action implements Widget_Interface_Do
         $this->throwData([
             'page' => (int) $page,
             'pageSize' => (int) $pageSize,
+            'pages' => ceil($count / $pageSize),
             'count' => $count,
             'dataSet' => $result,
         ]);
@@ -297,6 +299,7 @@ class Restful_Action implements Widget_Interface_Do
         $this->throwData([
             'page' => (int) $page,
             'pageSize' => (int) $pageSize,
+            'pages' => ceil($count / $pageSize),
             'count' => $count,
             'dataSet' => $finalResult,
         ]);
