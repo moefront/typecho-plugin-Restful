@@ -367,9 +367,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             'text' => $this->getParams('text', ''),
             'author' => $this->getParams('author', ''),
             'mail' => $this->getParams('mail', ''),
-            'url' => $this->getParams('url', ''),
-            '_' => $this->widget('Widget_Security')->getToken($result['permalink']),
+            'url' => $this->getParams('url', '')
         ];
+
+        // Typecho 0.9- has no anti-spam security
+        if (file_exists(__TYPECHO_ROOT_DIR__ . '/var/Widget/Security.php')) {
+            $postData['_'] = $this->widget('Widget_Security')->getToken($result['permalink']);
+        }
 
         $parent = $this->getParams('parent', '');
         if (is_numeric($parent)) {
