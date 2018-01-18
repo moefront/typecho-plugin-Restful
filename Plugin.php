@@ -6,9 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
  * Typecho Restful 插件
  *
  * @package Restful
- * @author Kokororin
+ * @author MoeFront Studio
  * @version 1.0.0
- * @link https://kotori.love
+ * @link https://moefront.github.io
  */
 class Restful_Plugin implements Typecho_Plugin_Interface
 {
@@ -38,6 +38,8 @@ class Restful_Plugin implements Typecho_Plugin_Interface
             Helper::addRoute('rest_' . $route, '/api/' . $route, self::ACTION_CLASS, $route . 'Action');
         }
         Typecho_Plugin::factory('Widget_Feedback')->comment = [__CLASS__, 'comment'];
+
+        return '_(:з」∠)_';
     }
 
     /**
@@ -53,6 +55,8 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         foreach (self::ROUTES as $route) {
             Helper::removeRoute('rest_' . $route);
         }
+
+        return '( ≧Д≦)';
     }
 
     /**
