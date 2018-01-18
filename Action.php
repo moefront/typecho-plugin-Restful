@@ -3,22 +3,20 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
     exit;
 }
 
-class Restful_Action implements Widget_Interface_Do
+class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 {
     private $config;
     private $db;
-    private $response;
-    private $request;
     private $options;
-    private $params;
+    private $httpParams;
 
-    public function __construct()
+    public function __construct($request, $response, $params = null)
     {
-        $this->config = Typecho_Widget::widget('Widget_Options')->plugin('Restful');
+        parent::__construct($request, $response, $params);
+
         $this->db = Typecho_Db::get();
-        $this->response = Typecho_Response::getInstance();
-        $this->request = Typecho_Request::getInstance();
-        $this->options = Helper::options();
+        $this->options = $this->widget('Widget_Options');
+        $this->config = $this->options->plugin('Restful');
     }
 
     public function execute()
@@ -59,7 +57,7 @@ class Restful_Action implements Widget_Interface_Do
             if (json_last_error() != JSON_ERROR_NONE) {
                 $this->throwError('Parse JSON error');
             }
-            $this->params = $data;
+            $this->httpParams = $data;
         }
     }
 
@@ -68,10 +66,10 @@ class Restful_Action implements Widget_Interface_Do
         if ($this->request->isGet()) {
             return $this->request->get($key, $default);
         }
-        if (!isset($this->params[$key])) {
+        if (!isset($this->httpParams[$key])) {
             return $default;
         }
-        return $this->params[$key];
+        return $this->httpParams[$key];
     }
 
     private function throwError($message = 'unknown', $status = 400)
@@ -114,36 +112,39 @@ class Restful_Action implements Widget_Interface_Do
         $filterSlug = trim($this->getParams('filterSlug', ''));
         $showContent = trim($this->getParams('showContent', '')) === 'true';
 
-        if (in_array($filterType, ['category', 'tag'])) {
+        if (in_array($filterType, ['category', 'tag', 'search'])) {
             if ($filterSlug == '') {
                 $this->throwError('filter slug is empty');
             }
-            $select = $this->db->select('mid')
-                ->from('table.metas')
-                ->where('type = ?', $filterType)
-                ->where('slug = ?', $filterSlug);
 
-            $row = $this->db->fetchRow($select);
-            if (!isset($row['mid'])) {
-                $this->throwError('unknown slug name');
-            }
-            $mid = $row['mid'];
-            $select = $this->db->select('cid')->from('table.relationships')
-                ->where('mid = ?', $mid);
+            if ($filterType != 'search') {
+                $select = $this->db->select('mid')
+                    ->from('table.metas')
+                    ->where('type = ?', $filterType)
+                    ->where('slug = ?', $filterSlug);
 
-            $cids = $this->db->fetchAll($select);
+                $row = $this->db->fetchRow($select);
+                if (!isset($row['mid'])) {
+                    $this->throwError('unknown slug name');
+                }
+                $mid = $row['mid'];
+                $select = $this->db->select('cid')->from('table.relationships')
+                    ->where('mid = ?', $mid);
 
-            if (count($cids) == 0) {
-                $this->throwData([
-                    'page' => (int) $page,
-                    'pageSize' => (int) $pageSize,
-                    'pages' => 0,
-                    'count' => 0,
-                    'dataSet' => [],
-                ]);
-            } else {
-                foreach ($cids as $key => $cid) {
-                    $cids[$key] = $cids[$key]['cid'];
+                $cids = $this->db->fetchAll($select);
+
+                if (count($cids) == 0) {
+                    $this->throwData([
+                        'page' => (int) $page,
+                        'pageSize' => (int) $pageSize,
+                        'pages' => 0,
+                        'count' => 0,
+                        'dataSet' => [],
+                    ]);
+                } else {
+                    foreach ($cids as $key => $cid) {
+                        $cids[$key] = $cids[$key]['cid'];
+                    }
                 }
             }
         }
@@ -159,6 +160,10 @@ class Restful_Action implements Widget_Interface_Do
         if (isset($cids)) {
             $cidStr = implode(',', $cids);
             $select->where('cid IN (' . $cidStr . ')');
+        } elseif ($filterType == 'search') {
+            // Widget_Archive::searchHandle()
+            $searchQuery = '%' . str_replace(' ', '%', $filterSlug) . '%';
+            $select->where('title LIKE ? OR text LIKE ?', $searchQuery, $searchQuery);
         }
 
         $count = count($this->db->fetchAll($select));
@@ -206,7 +211,7 @@ class Restful_Action implements Widget_Interface_Do
     public function categoriesAction()
     {
         $this->lockMethod('get');
-        $categories = Typecho_Widget::widget('Widget_Metas_Category_List');
+        $categories = $this->widget('Widget_Metas_Category_List');
 
         if (isset($categories->stack)) {
             $this->throwData($categories->stack);
@@ -222,7 +227,7 @@ class Restful_Action implements Widget_Interface_Do
     {
         $this->lockMethod('get');
 
-        Typecho_Widget::widget('Widget_Metas_Tag_Cloud')->to($tags);
+        $this->widget('Widget_Metas_Tag_Cloud')->to($tags);
 
         if ($tags->have()) {
             while ($tags->next()) {
@@ -341,7 +346,7 @@ class Restful_Action implements Widget_Interface_Do
             'author' => $this->getParams('author', ''),
             'mail' => $this->getParams('mail', ''),
             'url' => $this->getParams('url', ''),
-            '_' => Helper::security()->getToken($result['permalink']),
+            '_' => $this->widget('Widget_Security')->getToken($result['permalink']),
         ];
 
         $parent = $this->getParams('parent', '');
@@ -415,7 +420,7 @@ class Restful_Action implements Widget_Interface_Do
 
     private function filter($value)
     {
-        $contentWidget = Typecho_Widget::widget('Widget_Abstract_Contents');
+        $contentWidget = $this->widget('Widget_Abstract_Contents');
         $value['text'] = isset($value['text']) ? $value['text'] : null;
 
         if (method_exists($contentWidget, 'markdown')) {

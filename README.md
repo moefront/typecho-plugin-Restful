@@ -1,6 +1,7 @@
 # Typecho Restful 插件
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+![built by](https://img.shields.io/badge/built_by-MoeFront-ff69b4.svg)
 
 ## API
 
@@ -8,13 +9,13 @@
 
 `GET /api/posts`
 
-| 参数        | 类型   | 描述                 |      |
-| ----------- | ------ | -------------------- | ---- |
-| page        | int    | 当前页               | 可选 |
-| pageSize    | int    | 分页数               | 可选 |
-| filterType  | string | category 或 tag      | 可选 |
-| filterSlug  | string | 分类名或标签名       | 可选 |
-| showContent | bool   | 是否显示文章具体内容 | 可选 |
+| 参数        | 类型   | 描述                       |      |
+| ----------- | ------ | -------------------------- | ---- |
+| page        | int    | 当前页                     | 可选 |
+| pageSize    | int    | 分页数                     | 可选 |
+| filterType  | string | category 或 tag 或 search  | 可选 |
+| filterSlug  | string | 分类名或标签名或搜索关键字 | 可选 |
+| showContent | bool   | 是否显示文章具体内容       | 可选 |
 
 ### 页面列表
 
@@ -56,7 +57,7 @@
 PS：此处`Content-Type`为`application/json`
 
 | 参数   | 类型   | 描述        |        |
-| ------ | -------| ----------- | ------ |
+| ------ | ------ | ----------- | ------ |
 | cid    | int    | 文章 ID     | 二选一 |
 | slug   | string | 文章别名    | 二选一 |
 | parent | int    | 父级评论 ID | 可选   |
