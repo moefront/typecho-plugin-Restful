@@ -5,10 +5,47 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
 
 class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 {
+    /**
+     * @var Typecho_Config
+     */
     private $config;
+
+    /**
+     * @var Typecho_Db
+     */
     private $db;
+
+    /**
+     * @var Widget_Options
+     */
     private $options;
+
+    /**
+     * @var array
+     */
     private $httpParams;
+
+    public static function getRoutes()
+    {
+        $routes = [];
+        $reflectClass = new ReflectionClass(__CLASS__);
+        foreach ($reflectClass->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectMethod) {
+            $methodName = $reflectMethod->getName();
+
+            preg_match('/(.*)Action$/', $methodName, $matches);
+            if (isset($matches[1])) {
+                array_push($routes, [
+                    'action' => $matches[0],
+                    'name' => 'rest_' . $matches[1],
+                    'shortName' => $matches[1],
+                    'uri' => '/api/' . $matches[1],
+                    'description' => trim(str_replace(['/', '*'], '',
+                        substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@')))),
+                ]);
+            }
+        }
+        return $routes;
+    }
 
     public function __construct($request, $response, $params = null)
     {
@@ -113,6 +150,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
     }
 
+    /**
+     * 获取文章列表、搜索文章的接口
+     *
+     * @return void
+     */
     public function postsAction()
     {
         $this->lockMethod('get');
@@ -201,6 +243,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         ]);
     }
 
+    /**
+     * 获取页面列表的接口
+     *
+     * @return void
+     */
     public function pagesAction()
     {
         $this->lockMethod('get');
@@ -224,6 +271,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         ]);
     }
 
+    /**
+     * 获取分类列表的接口
+     *
+     * @return void
+     */
     public function categoriesAction()
     {
         $this->lockMethod('get');
@@ -240,6 +292,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
     }
 
+    /**
+     * 获取标签列表的接口
+     *
+     * @return void
+     */
     public function tagsAction()
     {
         $this->lockMethod('get');
@@ -256,6 +313,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->throwError('no tag', 404);
     }
 
+    /**
+     * 获取文章、独立页面详情的接口
+     *
+     * @return void
+     */
     public function postAction()
     {
         $this->lockMethod('get');
@@ -285,6 +347,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     }
 
+    /**
+     * 获取文章、独立页面评论列表的接口
+     *
+     * @return void
+     */
     public function commentsAction()
     {
         $this->lockMethod('get');
@@ -335,6 +402,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         ]);
     }
 
+    /**
+     * 发表评论的接口
+     *
+     * @return void
+     */
     public function commentAction()
     {
         $this->lockMethod('post');
@@ -367,7 +439,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             'text' => $this->getParams('text', ''),
             'author' => $this->getParams('author', ''),
             'mail' => $this->getParams('mail', ''),
-            'url' => $this->getParams('url', '')
+            'url' => $this->getParams('url', ''),
         ];
 
         // Typecho 0.9- has no anti-spam security
@@ -391,7 +463,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         curl_setopt($ch, CURLOPT_REFERER, $result['permalink']);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);                    // no verify ssl
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // no verify ssl
         $data = curl_exec($ch);
 
         if (curl_error($ch)) {
@@ -411,6 +483,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->throwData(null);
     }
 
+    /**
+     * 获取设置项的接口
+     *
+     * @return void
+     */
     public function settingsAction()
     {
         $this->lockMethod('get');
@@ -426,12 +503,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 创建子节点树形数组
-     * 参数
-     * $ar 数组，邻接列表方式组织的数据
-     * $id 数组中作为主键的下标或关联键名
-     * $pid 数组中作为父键的下标或关联键名
-     * 返回 多维数组
-     **/
+     *
+     * @param array  $ar  邻接列表方式组织的数据
+     * @param string $id  数组中作为主键的下标或关联键名
+     * @param string $pid 数组中作为父键的下标或关联键名
+     *
+     * @return array
+     */
     private function findChild($ar, $id = 'id', $pid = 'pid')
     {
         foreach ($ar as $v) {
