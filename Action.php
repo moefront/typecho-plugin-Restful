@@ -340,6 +340,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $result = $this->db->fetchRow($select);
         if (count($result) != 0) {
             $result = $this->filter($result);
+            $result['csrfToken'] = $this->generateCsrfToken($result['permalink']);
             $this->throwData($result);
         } else {
             $this->throwError('post not exists', 404);
@@ -414,6 +415,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
+        $token = $this->getParams('token', '');
 
         $select = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
@@ -430,6 +432,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $result = $this->filter($result);
         } else {
             $this->throwError('post not exists', 404);
+        }
+
+        if (!$this->checkCsrfToken($result['permalink'], $token)) {
+            $this->throwError('token invalid');
         }
 
         $commentUrl = Typecho_Router::url('feedback',
@@ -546,6 +552,28 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
 
         return $value;
+    }
+
+    private function generateCsrfToken($key)
+    {
+        return base64_encode(
+            hash_hmac(
+                'sha256',
+                hash_hmac(
+                    'sha256',
+                    date('Ymd') . $this->request->getServer('REMOTE_ADDR') . $this->request->getServer('HTTP_USER_AGENT'),
+                    hash('sha256', $key, true),
+                    true
+                ),
+                $this->config->csrfSalt,
+                true
+            )
+        );
+    }
+
+    private function checkCsrfToken($key, $token)
+    {
+        return hash_equals($token, $this->generateCsrfToken($key));
     }
 
 }
