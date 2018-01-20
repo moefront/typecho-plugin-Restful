@@ -65,8 +65,17 @@ PS：此处`Content-Type`为`application/json`
 | author | string | 作者                      | 必须   |
 | mail   | string | 邮箱                      | 必须   |
 | url    | string | URL                       | 可选   |
-| token  | string | 文章/页面详情返回的 token | 必须   |
+| token  | string | 文章/页面详情返回的 token  | 必须   |
 
 ### 设置项
 
 `GET /api/settings`
+
+### 用户信息
+
+`GET /api/user`
+
+| 参数 | 类型    | 描述              |     |
+| ---- | ------ | ----------------- | --- |
+| uid  | int    | 用户 ID           | 可选 |
+| name | string | 用户的用户名或昵称 | 可选 |

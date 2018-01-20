@@ -508,6 +508,57 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * 获取作者信息和作者文章的接口
+     *
+     * @return void
+     */
+    public function userAction()
+    {
+        $this->lockMethod('get');
+        $this->checkState('user');
+
+        $uid = $this->getParams('uid', '');
+        $name = $this->getParams('name', '');
+
+        $select = $this->db->select('uid', 'mail', 'url', 'screenName')
+            ->from('table.users');
+        if (!empty($uid)) {
+            $select->where('uid = ?', $uid);
+        } else if (!empty($name)) {
+            $select->where('name = ? OR screenName = ?', $name, $name);
+        }
+
+        $result = $this->db->fetchAll($select);
+        $users = array();
+        foreach ($result as $key => $value) {
+            $postSelector = $this->db->select('cid', 'title', 'slug', 'created', 'modified', 'type')
+                ->from('table.contents')
+                ->where('status = ?', 'publish')
+                ->where('password IS NULL')
+                ->where('type = ?', 'post')
+                ->where('authorId = ?', $value['uid']);
+            $posts = $this->db->fetchAll($postSelector);
+            foreach ($posts as $postNumber => $post) {
+                $posts[$postNumber] = $this->filter($post);
+            }
+
+            array_push($users, array(
+                "uid" => $value['uid'],
+                "name" => $value['screenName'],
+                "mailHash" => md5($value['mail']),
+                "url" => $value['url'],
+                "count" => count($posts),
+                "posts" => $posts
+            ));
+        }
+
+        $this->throwData(array(
+            "count" => count($users),
+            "dataset" => $users
+        ));
+    }
+
+    /**
      * 创建子节点树形数组
      *
      * @param array  $ar  邻接列表方式组织的数据
