@@ -56,15 +56,16 @@
 
 PS：此处`Content-Type`为`application/json`
 
-| 参数   | 类型   | 描述        |        |
-| ------ | ------ | ----------- | ------ |
-| cid    | int    | 文章 ID     | 二选一 |
-| slug   | string | 文章别名    | 二选一 |
-| parent | int    | 父级评论 ID | 可选   |
-| text   | string | 评论内容    | 必须   |
-| author | string | 作者        | 必须   |
-| mail   | string | 邮箱        | 必须   |
-| url    | string | URL         | 可选   |
+| 参数   | 类型   | 描述                      |        |
+| ------ | ------ | ------------------------- | ------ |
+| cid    | int    | 文章 ID                   | 二选一 |
+| slug   | string | 文章别名                  | 二选一 |
+| parent | int    | 父级评论 ID               | 可选   |
+| text   | string | 评论内容                  | 必须   |
+| author | string | 作者                      | 必须   |
+| mail   | string | 邮箱                      | 必须   |
+| url    | string | URL                       | 可选   |
+| token  | string | 文章/页面详情返回的 token | 必须   |
 
 ### 设置项
 

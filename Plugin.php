@@ -14,17 +14,6 @@ class Restful_Plugin implements Typecho_Plugin_Interface
 {
     const ACTION_CLASS = 'Restful_Action';
 
-    const ROUTES = [
-        'posts',
-        'pages',
-        'categories',
-        'tags',
-        'post',
-        'comments',
-        'comment',
-        'settings',
-    ];
-
     /**
      * 激活插件方法,如果激活失败,直接抛出异常
      *
@@ -34,8 +23,9 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function activate()
     {
-        foreach (self::ROUTES as $route) {
-            Helper::addRoute('rest_' . $route, '/api/' . $route, self::ACTION_CLASS, $route . 'Action');
+        $routes = call_user_func([self::ACTION_CLASS, 'getRoutes']);
+        foreach ($routes as $route) {
+            Helper::addRoute($route['name'], $route['uri'], self::ACTION_CLASS, $route['action']);
         }
         Typecho_Plugin::factory('Widget_Feedback')->comment = [__CLASS__, 'comment'];
 
@@ -52,8 +42,9 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function deactivate()
     {
-        foreach (self::ROUTES as $route) {
-            Helper::removeRoute('rest_' . $route);
+        $routes = call_user_func([self::ACTION_CLASS, 'getRoutes']);
+        foreach ($routes as $route) {
+            Helper::removeRoute($route['name']);
         }
 
         return '( ≧Д≦)';
@@ -69,28 +60,22 @@ class Restful_Plugin implements Typecho_Plugin_Interface
     public static function config(Typecho_Widget_Helper_Form $form)
     {
         /* API switcher */
+        $routes = call_user_func([self::ACTION_CLASS, 'getRoutes']);
         echo '<h3>API 状态设置</h3>';
 
-        $interfaces = array(
-            'posts' => '获取文章列表、搜索文章的接口。',
-            'pages' => '获取页面列表的接口。',
-            'categories' => '获取分类列表的接口。',
-            'tags' => '获取标签列表的接口。',
-            'post' => '获取文章 / 独立页面详情的接口。',
-            'comments' => '获取文章 / 独立页面评论列表的接口。',
-            'comment' => '发表评论的接口。',
-            'settings' => '获取设置项的接口。'
-        );
-
-        foreach ($interfaces as $name => $description) {
-            $tmp = new Typecho_Widget_Helper_Form_Element_Radio($name, array(
-                0 => _t('禁用'), 1 => _t('启用'),
-            ), 1, _t('/api/' . $name), _t($description));
+        foreach ($routes as $route) {
+            $tmp = new Typecho_Widget_Helper_Form_Element_Radio($route['shortName'], [
+                0 => _t('禁用'),
+                1 => _t('启用'),
+            ], 1, $route['uri'], _t($route['description']));
             $form->addInput($tmp);
         }
 
         $origin = new Typecho_Widget_Helper_Form_Element_Textarea('origin', null, null, _t('域名列表'), _t('一行一个<br>以下是例子qwq<br>http://localhost:8080<br>https://blog.example.com<br>若不限制跨域域名，请使用通配符 *。'));
         $form->addInput($origin);
+
+        $csrfSalt = new Typecho_Widget_Helper_Form_Element_Text('csrfSalt', null, '05faabd6637f7e30c797973a558d4372', _t('CSRF加密盐'), _t('请务必修改本参数，以防止跨站攻击。'));
+        $form->addInput($csrfSalt);
     }
 
     /**
