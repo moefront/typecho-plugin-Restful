@@ -73,9 +73,20 @@ PS：此处`Content-Type`为`application/json`
 
 ### 用户信息
 
-`GET /api/user`
+`GET /api/users`
 
 | 参数 | 类型    | 描述              |     |
 | ---- | ------ | ----------------- | --- |
 | uid  | int    | 用户 ID           | 可选 |
 | name | string | 用户的用户名或昵称 | 可选 |
+
+### 归档
+
+`GET /api/archives`
+
+PS：默认按从新到旧 (desc) 顺序排列文章。
+
+| 参数         | 类型     | 描述                       |     |
+| ------------ | ------- | -------------------------- | --- |
+| showContent  | boolean | 是否显示文章内容            | 可选 |
+| order        | string  | 归档的排序方式 (asc / desc) | 可选 |
