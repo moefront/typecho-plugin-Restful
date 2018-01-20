@@ -25,6 +25,20 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private $httpParams;
 
+    public function __construct($request, $response, $params = null)
+    {
+        parent::__construct($request, $response, $params);
+
+        $this->db = Typecho_Db::get();
+        $this->options = $this->widget('Widget_Options');
+        $this->config = $this->options->plugin('Restful');
+    }
+
+    /**
+     * 获取路由参数
+     *
+     * @return array
+     */
     public static function getRoutes()
     {
         $routes = [];
@@ -47,15 +61,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         return $routes;
     }
 
-    public function __construct($request, $response, $params = null)
-    {
-        parent::__construct($request, $response, $params);
-
-        $this->db = Typecho_Db::get();
-        $this->options = $this->widget('Widget_Options');
-        $this->config = $this->options->plugin('Restful');
-    }
-
     public function execute()
     {
         $this->sendCORS();
@@ -65,6 +70,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function action()
     {}
 
+    /**
+     * 发送跨域 HEADER
+     *
+     * @return void
+     */
     private function sendCORS()
     {
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
@@ -86,6 +96,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
     }
 
+    /**
+     * 解析请求参数
+     * 
+     * @return void
+     */
     private function parseRequest()
     {
         if ($this->request->isPost()) {
@@ -98,6 +113,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
     }
 
+    /**
+     * 获取 GET/POST 参数
+     * 
+     * @param string $key 目标参数的 key
+     * @param mixed $default 返回的默认值
+     * @return mixed
+     */
     private function getParams($key, $default = null)
     {
         if ($this->request->isGet()) {
@@ -109,6 +131,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         return $this->httpParams[$key];
     }
 
+    /**
+     * 以 JSON 格式返回错误
+     *
+     * @param string $message 错误信息
+     * @param integer $status HTTP 状态码
+     * @return void
+     */
     private function throwError($message = 'unknown', $status = 400)
     {
         Typecho_Response::setStatus($status);
@@ -119,6 +148,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         ]);
     }
 
+    /**
+     * 以 JSON 格式响应请求的信息
+     * 
+     * @param mixed $data 要返回给用户的内容
+     * @return void
+     */
     private function throwData($data)
     {
         $this->response->throwJson([
@@ -128,6 +163,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         ]);
     }
 
+    /**
+     * 锁定 API 请求方式
+     * 
+     * @param string $method 请求方式 (get/post)
+     * @return void
+     */
     private function lockMethod($method)
     {
         $method = strtolower($method);
@@ -139,7 +180,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     /**
      * show errors when accessing a disabled API
      *
-     * @param [string] $route
+     * @param string $route
      * @return void
      */
     private function checkState($route)
@@ -508,6 +549,106 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * 获取作者信息和作者文章的接口
+     *
+     * @return void
+     */
+    public function usersAction()
+    {
+        $this->lockMethod('get');
+        $this->checkState('users');
+
+        $uid = $this->getParams('uid', '');
+        $name = $this->getParams('name', '');
+
+        $select = $this->db->select('uid', 'mail', 'url', 'screenName')
+            ->from('table.users');
+        if (!empty($uid)) {
+            $select->where('uid = ?', $uid);
+        } else if (!empty($name)) {
+            $select->where('name = ? OR screenName = ?', $name, $name);
+        }
+
+        $result = $this->db->fetchAll($select);
+        $users = array();
+        foreach ($result as $key => $value) {
+            $postSelector = $this->db->select('cid', 'title', 'slug', 'created', 'modified', 'type')
+                ->from('table.contents')
+                ->where('status = ?', 'publish')
+                ->where('password IS NULL')
+                ->where('type = ?', 'post')
+                ->where('authorId = ?', $value['uid']);
+            $posts = $this->db->fetchAll($postSelector);
+            foreach ($posts as $postNumber => $post) {
+                $posts[$postNumber] = $this->filter($post);
+            }
+
+            array_push($users, array(
+                "uid" => $value['uid'],
+                "name" => $value['screenName'],
+                "mailHash" => md5($value['mail']),
+                "url" => $value['url'],
+                "count" => count($posts),
+                "posts" => $posts
+            ));
+        }
+
+        $this->throwData(array(
+            "count" => count($users),
+            "dataset" => $users
+        ));
+    }
+
+    /**
+     * 归档页面接口
+     * 
+     * @return void
+     */
+    public function archivesAction()
+    {
+        $this->lockMethod('get');
+        $this->checkState('archives');
+        $showContent = trim($this->getParam('showContent', '')) === 'true';
+        $order = strtolower($this->getParam('order', ''));
+
+        $select = $this->db->select('cid', 'title', 'slug', 'created', 'modified', 'type', 'text')
+            ->from('table.contents')
+            ->where('status = ?', 'publish')
+            ->where('password IS NULL')
+            ->where('type = ?', 'post')
+            ->order('created', $order === 'asc' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
+        $posts = $this->db->fetchAll($select);
+
+        $archives = array();
+        $created = array();
+        foreach ($posts as $key => $post) {
+            $post = $this->filter($post);
+            if (!$showContent) {
+                unset($post['text']);
+            }
+
+            $date = $post['created'];
+            $year = date('Y', $date);
+            $month = date('m', $date);
+            $archives[$year] = isset($archives[$year]) ? $archives[$year] : array();
+            $archives[$year][$month] = isset($archives[$year][$month])
+                ? $archives[$year][$month]
+                : array();
+            array_push($archives[$year][$month], $post);
+        }
+        // sort by date descend
+        krsort($archives, SORT_NUMERIC);
+        foreach ($archives as $archive) {
+            krsort($archive, SORT_NUMERIC);
+        }
+
+        $this->throwData(array(
+            "count" => count($posts),
+            "dataSet" => $archives
+        ));
+    }
+
+    /**
      * 创建子节点树形数组
      *
      * @param array  $ar  邻接列表方式组织的数据
@@ -530,6 +671,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         return $t;
     }
 
+    /**
+     * 过滤和补全文章数组
+     * 
+     * @param array $value 文章详细信息数组
+     * @return array
+     */
     private function filter($value)
     {
         $contentWidget = $this->widget('Widget_Abstract_Contents');
@@ -554,6 +701,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         return $value;
     }
 
+    /**
+     * 生成 CSRF Token
+     *
+     * @param mixed $key
+     * @return string
+     */
     private function generateCsrfToken($key)
     {
         return base64_encode(
@@ -571,6 +724,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         );
     }
 
+    /**
+     * 检查 CSRF Token 是否匹配
+     * 
+     * @param mixed $key
+     * @param mixed $token
+     * @return boolean
+     */
     private function checkCsrfToken($key, $token)
     {
         return hash_equals($token, $this->generateCsrfToken($key));

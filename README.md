@@ -65,8 +65,28 @@ PS：此处`Content-Type`为`application/json`
 | author | string | 作者                      | 必须   |
 | mail   | string | 邮箱                      | 必须   |
 | url    | string | URL                       | 可选   |
-| token  | string | 文章/页面详情返回的 token | 必须   |
+| token  | string | 文章/页面详情返回的 token  | 必须   |
 
 ### 设置项
 
 `GET /api/settings`
+
+### 用户信息
+
+`GET /api/users`
+
+| 参数 | 类型    | 描述              |     |
+| ---- | ------ | ----------------- | --- |
+| uid  | int    | 用户 ID           | 可选 |
+| name | string | 用户的用户名或昵称 | 可选 |
+
+### 归档
+
+`GET /api/archives`
+
+PS：默认按从新到旧 (desc) 顺序排列文章。
+
+| 参数         | 类型     | 描述                       |     |
+| ------------ | ------- | -------------------------- | --- |
+| showContent  | boolean | 是否显示文章内容            | 可选 |
+| order        | string  | 归档的排序方式 (asc / desc) | 可选 |
