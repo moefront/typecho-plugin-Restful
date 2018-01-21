@@ -1,0 +1,26 @@
+{
+    "require": {
+        "php": ">=5.4.0",
+        "ext-curl": "*"
+    },
+    "require-dev": {
+        "guiguiboy/php-cli-progress-bar": "^0.0.4",
+        "guzzlehttp/guzzle": "~6.0",
+        "phpunit/phpunit": "^6.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Typecho\\Plugin\\Restful\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@phpunit"
+        ],
+        "phpunit": "php vendor/bin/phpunit --debug"
+    },
+    "config": {
+        "process-timeout": 0,
+        "sort-packages": true
+    }
+}
