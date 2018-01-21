@@ -6,6 +6,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use PDO;
+use PDOException;
 use PharData;
 use ProgressBar\Manager;
 use RecursiveDirectoryIterator;
@@ -75,6 +77,15 @@ class Util
      */
     public static function installTypecho()
     {
+        try {
+            $pdo = new PDO('mysql:host=' . getenv('MYSQL_HOST'), getenv('MYSQL_USER'), getenv('MYSQL_PWD'));
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->exec('DROP DATABASE IF EXISTS `' . getenv('MYSQL_DB') . '`;
+CREATE DATABASE `' . getenv('MYSQL_DB') . '`;');
+        } catch (PDOException $e) {
+            throw $e;
+        }
+
         exec(sprintf('mysql -u %s --password=%s %s < %s',
             getenv('MYSQL_USER'),
             getenv('MYSQL_PWD'),
@@ -82,7 +93,8 @@ class Util
             __DIR__ . '/typecho.sql'));
 
         $typechoDir = self::$tmpPath . 'typecho-master';
-        file_put_contents($typechoDir . '/config.inc.php', '<?php
+
+        $configFileContent = sprintf('<?php
 /**
  * Typecho Blog Platform
  *
@@ -138,16 +150,18 @@ Typecho_Common::init();
 /** 定义数据库参数 */
 $db = new Typecho_Db("Pdo_Mysql", "typecho_");
 $db->addServer(array (
-  "host" => getenv("MYSQL_HOST"),
-  "user" => getenv("MYSQL_USER"),
-  "password" => getenv("MYSQL_PWD"),
+  "host" => "%s",
+  "user" => "%s",
+  "password" => "%s",
   "charset" => "utf8mb4",
   "port" => "3306",
-  "database" => getenv("MYSQL_DB"),
+  "database" => "%s",
   "engine" => "InnoDB",
 ), Typecho_Db::READ | Typecho_Db::WRITE);
 Typecho_Db::set($db);
-');
+', getenv('MYSQL_HOST'), getenv('MYSQL_USER'), getenv('MYSQL_PWD'), getenv('MYSQL_DB'));
+
+        file_put_contents($typechoDir . '/config.inc.php', $configFileContent);
 
         $pluginDir = $typechoDir . '/usr/plugins/Restful';
         try {
