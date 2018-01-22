@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.7/phpunit.xsd"
+         backupGlobals="false"
+         backupStaticAttributes="false"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         beStrictAboutChangesToGlobalState="true"
+         beStrictAboutOutputDuringTests="true"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         bootstrap="tests/bootstrap.php"
+>
+    <testsuites>
+        <testsuite name="Typecho Plugin Restful Test Suite">
+            <directory>./tests/</directory>
+        </testsuite>
+    </testsuites>
+
+    <php>
+        <env name="WEB_SERVER_HOST" value="127.0.0.1" />
+        <env name="WEB_SERVER_PORT" value="2333" />
+        <env name="WEB_SERVER_DOCROOT" value="./tmp/typecho-master" />
+        <env name="WEB_SERVER_TIMEOUT" value="1000" />
+        <env name="MYSQL_HOST" value="127.0.0.1" />
+        <env name="MYSQL_USER" value="root" />
+        <env name="MYSQL_PWD" value="123456" />
+        <env name="MYSQL_DB" value="typecho_test_db" />
+    </php>
+
+</phpunit>

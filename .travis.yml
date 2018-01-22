@@ -1,0 +1,16 @@
+language: php
+php:
+  - 7.2
+
+services:
+  - mysql
+
+cache:
+  directories:
+    - $HOME/.composer/cache
+
+before_script:
+  - composer install
+
+script:
+  - composer test
