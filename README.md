@@ -1,5 +1,6 @@
 # Typecho Restful 插件
 
+[![Build Status](https://travis-ci.org/moefront/typecho-plugin-Restful.svg?branch=master)](https://travis-ci.org/moefront/typecho-plugin-Restful)
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 ![built by](https://img.shields.io/badge/built_by-MoeFront-ff69b4.svg)
 

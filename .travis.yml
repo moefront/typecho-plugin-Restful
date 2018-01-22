@@ -5,10 +5,6 @@ php:
 services:
   - mysql
 
-branches:
-  only:
-    - feature/tests
-
 cache:
   directories:
     - $HOME/.composer/cache
