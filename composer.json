@@ -18,7 +18,7 @@
         "test": [
             "@phpunit"
         ],
-        "phpunit": "php vendor/bin/phpunit --debug"
+        "phpunit": "php vendor/bin/phpunit"
     },
     "config": {
         "process-timeout": 0,
