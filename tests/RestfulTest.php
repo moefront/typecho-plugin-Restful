@@ -122,4 +122,25 @@ class RestfulTest extends TestCase
         $this->assertArrayHasKey('keywords', $result['data']);
         $this->assertArrayHasKey('timezone', $result['data']);
     }
+
+    public function testUsers()
+    {
+        $response = self::$client->get('/api/users?uid=1');
+        $result = json_decode($response->getBody(), true);
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertArrayHasKey('count', $result['data']);
+        $this->assertArrayHasKey('dataSet', $result['data']);
+        $this->assertArrayHasKey('posts', $result['data']['dataSet'][0]);
+    }
+
+    public function testArchives()
+    {
+        $response = self::$client->get('/api/archives?showContent=true');
+        $result = json_decode($response->getBody(), true);
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertArrayHasKey('count', $result['data']);
+        $this->assertArrayHasKey('dataSet', $result['data']);
+    }
 }

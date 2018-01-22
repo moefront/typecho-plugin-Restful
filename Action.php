@@ -98,7 +98,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 解析请求参数
-     * 
+     *
      * @return void
      */
     private function parseRequest()
@@ -115,7 +115,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 获取 GET/POST 参数
-     * 
+     *
      * @param string $key 目标参数的 key
      * @param mixed $default 返回的默认值
      * @return mixed
@@ -150,7 +150,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 以 JSON 格式响应请求的信息
-     * 
+     *
      * @param mixed $data 要返回给用户的内容
      * @return void
      */
@@ -165,7 +165,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 锁定 API 请求方式
-     * 
+     *
      * @param string $method 请求方式 (get/post)
      * @return void
      */
@@ -595,13 +595,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $this->throwData(array(
             "count" => count($users),
-            "dataset" => $users
+            "dataSet" => $users
         ));
     }
 
     /**
      * 归档页面接口
-     * 
+     *
      * @return void
      */
     public function archivesAction()
@@ -673,7 +673,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 过滤和补全文章数组
-     * 
+     *
      * @param array $value 文章详细信息数组
      * @return array
      */
@@ -726,7 +726,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 检查 CSRF Token 是否匹配
-     * 
+     *
      * @param mixed $key
      * @param mixed $token
      * @return boolean
