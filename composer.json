@@ -6,11 +6,12 @@
     "require-dev": {
         "guiguiboy/php-cli-progress-bar": "^0.0.4",
         "guzzlehttp/guzzle": "~6.0",
-        "phpunit/phpunit": "^6.0"
+        "phpunit/phpunit": "^6.0",
+        "ssx/php-serve": "^0.0.3"
     },
     "autoload-dev": {
         "psr-4": {
-            "Typecho\\Plugin\\Restful\\Tests\\": "tests/"
+            "MoeFront\\RestfulTests\\": "tests/"
         }
     },
     "scripts": {
@@ -22,5 +23,9 @@
     "config": {
         "process-timeout": 0,
         "sort-packages": true
-    }
+    },
+    "repositories": [{
+        "type": "composer",
+        "url": "https://packagist.laravel-china.org"
+    }]
 }

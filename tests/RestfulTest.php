@@ -1,5 +1,5 @@
 <?php
-namespace Typecho\Plugin\Restful\Tests;
+namespace MoeFront\RestfulTests;
 
 use GuzzleHttp\Client;
 use PHPUnit\Framework\TestCase;

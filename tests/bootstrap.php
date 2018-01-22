@@ -1,5 +1,6 @@
 <?php
-use Typecho\Plugin\Restful\Tests\Util;
+use MoeFront\RestfulTests\Util;
+use SSX\Utility\Serve;
 
 // Errors on full!
 ini_set('display_errors', 1);
@@ -8,29 +9,13 @@ error_reporting(E_ALL | E_STRICT);
 Util::downloadTypecho();
 
 // Start build-in server
-$pid = Util::startServer();
-if (!$pid) {
-    throw new RuntimeException('Could not start the web server');
-}
+$server = new Serve([
+    'address' => getenv('WEB_SERVER_HOST'),
+    'port' => getenv('WEB_SERVER_PORT'),
+    'document_root' => getenv('WEB_SERVER_DOCROOT'),
+]);
 
-$start = microtime(true);
-$connected = false;
-// Try to connect until the time spent exceeds the timeout specified in the configuration
-while (microtime(true) - $start <= (int) getenv('WEB_SERVER_TIMEOUT')) {
-    if (Util::canConnectToServer()) {
-        $connected = true;
-        break;
-    }
-}
-if (!$connected) {
-    Util::killProcess($pid);
-    throw new RuntimeException(
-        sprintf(
-            'Could not connect to the web server within the given timeframe (%d second(s))',
-            getenv('WEB_SERVER_TIMEOUT')
-        )
-    );
-}
+$server->start();
 
 // Set env
 if (getenv('CI')) {
@@ -40,6 +25,6 @@ if (getenv('CI')) {
 Util::installTypecho();
 
 // Kill the web server when the process ends
-register_shutdown_function(function () use ($pid) {
-    Util::killProcess($pid);
+register_shutdown_function(function () use ($server) {
+    $server->stop();
 });

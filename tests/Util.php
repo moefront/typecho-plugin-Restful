@@ -1,5 +1,5 @@
 <?php
-namespace Typecho\Plugin\Restful\Tests;
+namespace MoeFront\RestfulTests;
 
 use Exception;
 use GuzzleHttp\Client;
@@ -15,7 +15,19 @@ use RecursiveIteratorIterator;
 
 class Util
 {
+    /**
+     * 临时下载目录
+     *
+     * @var string
+     */
     private static $tmpPath = __DIR__ . '/../tmp/';
+
+    /**
+     * Typecho根目录
+     *
+     * @var string
+     */
+    private static $typechoDir;
 
     /**
      * 下载Typecho
@@ -29,6 +41,13 @@ class Util
         $url = 'https://github.com/typecho/typecho/archive/master.tar.gz';
         $fileName = basename($url);
         $filePath = self::$tmpPath . $fileName;
+
+        self::$typechoDir = self::$tmpPath . 'typecho-master';
+
+        if (is_dir(self::$typechoDir)) {
+            echo 'typecho already downloaded' . PHP_EOL;
+            return;
+        }
 
         echo 'downloading typecho' . PHP_EOL;
 
@@ -91,8 +110,6 @@ CREATE DATABASE `' . getenv('MYSQL_DB') . '`;');
             getenv('MYSQL_PWD'),
             getenv('MYSQL_DB'),
             __DIR__ . '/typecho.sql'));
-
-        $typechoDir = self::$tmpPath . 'typecho-master';
 
         $configFileContent = sprintf('<?php
 /**
@@ -161,9 +178,9 @@ $db->addServer(array (
 Typecho_Db::set($db);
 ', getenv('MYSQL_HOST'), getenv('MYSQL_USER'), getenv('MYSQL_PWD'), getenv('MYSQL_DB'));
 
-        file_put_contents($typechoDir . '/config.inc.php', $configFileContent);
+        file_put_contents(self::$typechoDir . '/config.inc.php', $configFileContent);
 
-        $pluginDir = $typechoDir . '/usr/plugins/Restful';
+        $pluginDir = self::$typechoDir . '/usr/plugins/Restful';
         try {
             self::deleteDir($pluginDir);
         } catch (Exception $e) {}
@@ -171,69 +188,13 @@ Typecho_Db::set($db);
         copy(__DIR__ . '/../Plugin.php', $pluginDir . '/Plugin.php');
         copy(__DIR__ . '/../Action.php', $pluginDir . '/Action.php');
 
-        file_put_contents($typechoDir . '/reactivate_restful.php', "<?php
+        file_put_contents(self::$typechoDir . '/reactivate_restful.php', "<?php
 require_once __DIR__ . '/index.php';
 
 Restful_Plugin::deactivate();
 Restful_Plugin::activate();
 ");
         file_get_contents('http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT') . '/reactivate_restful.php');
-    }
-
-    /**
-     * 启动服务器
-     *
-     * @return void
-     */
-    public static function startServer()
-    {
-        // Command that starts the built-in web server
-        exec('pid=$(lsof -i:' . getenv('WEB_SERVER_PORT') . ' -t); kill -TERM $pid || kill -KILL $pid 2> /dev/null');
-        $command = sprintf(
-            'php -S %s:%d -t %s >/dev/null 2>&1 & echo $!',
-            getenv('WEB_SERVER_HOST'),
-            getenv('WEB_SERVER_PORT'),
-            getenv('WEB_SERVER_DOCROOT')
-        );
-        echo sprintf('Running command "%s"', $command) . PHP_EOL;
-        // Execute the command and store the process ID
-        $output = [];
-        exec($command, $output);
-        return (int) $output[0];
-    }
-
-    /**
-     * 服务器存活确认
-     *
-     * @return boolean
-     */
-    public static function canConnectToServer()
-    {
-        // Disable error handler for now
-        set_error_handler(function () {
-            return true;
-        });
-        // Try to open a connection
-        $sp = fsockopen(getenv('WEB_SERVER_HOST'), getenv('WEB_SERVER_PORT'));
-        // Restore the handler
-        restore_error_handler();
-        if ($sp === false) {
-            return false;
-        }
-        fclose($sp);
-        return true;
-    }
-
-    /**
-     * 结束进程
-     *
-     * @param  integer $pid
-     * @return void
-     */
-    public static function killProcess($pid)
-    {
-        echo sprintf('%s - Killing process with ID %d', date('r'), $pid) . PHP_EOL;
-        exec('kill ' . (int) $pid);
     }
 
     /**
