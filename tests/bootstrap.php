@@ -17,14 +17,14 @@ $server = new Serve([
 
 $server->start();
 
+// Kill the web server when the process ends
+register_shutdown_function(function () use ($server) {
+    $server->stop();
+});
+
 // Set env
 if (getenv('CI')) {
     putenv('MYSQL_PWD=');
 }
 
 Util::installTypecho();
-
-// Kill the web server when the process ends
-register_shutdown_function(function () use ($server) {
-    $server->stop();
-});
