@@ -4,7 +4,17 @@
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 ![built by](https://img.shields.io/badge/built_by-MoeFront-ff69b4.svg)
 
+这是一个将 Typecho 博客 RESTful 化的插件。启用此插件，你可以通过请求 API 向站点请求或写入信息（获取文章内容、获取评论、添加评论等）。
+
+------
+
+## 食用方法
+
+下载插件并解压，将解压后的目录重命名为 `Restful` (区分大小写)，然后到后台插件管理页面启用并设置即可。
+
 ## API
+
+下面假设您的站点已经开启了地址重写（伪静态）；如果没有的话，那么需要在下文列出的请求的 URI 前加上 `/index.php`，例如：`/api/posts` => `/index.php/api/posts`.
 
 ### 文章列表
 
@@ -89,5 +99,11 @@ PS：默认按从新到旧 (desc) 顺序排列文章。
 
 | 参数         | 类型     | 描述                       |     |
 | ------------ | ------- | -------------------------- | --- |
-| showContent  | boolean | 是否显示文章内容            | 可选 |
+| showContent  | bool    | 是否显示文章内容            | 可选 |
 | order        | string  | 归档的排序方式 (asc / desc) | 可选 |
+
+## License
+
+`typecho-plugin-restful` is MIT licensed.
+
+Since it is a derivative of Typecho which is GPLv2 licensed, you may also need to observe GPLv2 when you are redistributing this plugin.

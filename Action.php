@@ -199,12 +199,18 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     public function getCustomFields($cid)
     {
+        $cfg = $this->config->fieldsPrivacy;
+        $filters = empty($cfg) ? array() : explode(',', $cfg);
+
         $query = $this->db->select('*')->from('table.fields')
             ->where('cid = ?', $cid);
         $rows = $this->db->fetchAll($query);
         $result = array();
         if (count($rows) > 0) {
             foreach ($rows as $key => $value) {
+                if (in_array($value['name'], $filters)) {
+                    continue;
+                }
                 $type = $value['type'];
                 $result[$value['name']] = array(
                     "name" => $value['name'],
@@ -564,6 +570,22 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $this->lockMethod('get');
         $this->checkState('settings');
+
+        $key = trim($this->getParams('key', ''));
+        $allowed = array_merge(explode(',', $this->config->allowedOptions), array(
+            'title', 'description', 'keywords', 'timezone'
+        ));
+
+        if (!empty($key)) {
+            if (in_array($key, $allowed)) {
+                $query = $this->db->select('*')
+                    ->from('table.options')
+                    ->where('name = ?', $key);
+                $this->throwData($this->db->fetchAll($query));
+            } else {
+                $this->throwError('The options key you requested is therefore not allowed.', 403);
+            }
+        }
 
         $this->throwData([
             'title' => $this->options->title,
