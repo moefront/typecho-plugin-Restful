@@ -188,13 +188,19 @@ Typecho_Db::set($db);
         copy(__DIR__ . '/../Plugin.php', $pluginDir . '/Plugin.php');
         copy(__DIR__ . '/../Action.php', $pluginDir . '/Action.php');
 
-        file_put_contents(self::$typechoDir . '/reactivate_restful.php', "<?php
+        file_put_contents(self::$typechoDir . '/restful.php', "<?php
 require_once __DIR__ . '/index.php';
 
-Restful_Plugin::deactivate();
-Restful_Plugin::activate();
+call_user_func_array([Typecho_Widget::widget('Widget_Plugins_Edit'), Typecho_Request::getInstance()->get('action')], ['Restful']);
 ");
-        file_get_contents('http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT') . '/reactivate_restful.php');
+        $actionUrl = 'http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT') . '/restful.php';
+
+        $client = new Client([
+            'allow_redirects' => false,
+        ]);
+
+        $client->get($actionUrl . '?action=deactivate');
+        $client->get($actionUrl . '?action=activate');
     }
 
     /**
