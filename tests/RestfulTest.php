@@ -5,6 +5,10 @@ use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\TestCase;
 
+if (php_sapi_name() !== 'cli') {
+    exit;
+}
+
 class RestfulTest extends TestCase
 {
     private static $client;
