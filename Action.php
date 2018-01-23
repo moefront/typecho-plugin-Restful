@@ -192,6 +192,31 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * 获取文章自定义字段内容
+     *
+     * @param int $cid
+     * @return array
+     */
+    public function getCustomFields($cid)
+    {
+        $query = $this->db->select('*')->from('table.fields')
+            ->where('cid = ?', $cid);
+        $rows = $this->db->fetchAll($query);
+        $result = array();
+        if (count($rows) > 0) {
+            foreach ($rows as $key => $value) {
+                $type = $value['type'];
+                $result[$value['name']] = array(
+                    "name" => $value['name'],
+                    "type" => $value['type'],
+                    "value" => $value[$value['type'] . '_value']
+                );
+            }
+        }
+        return $result;
+    }
+
+    /**
      * 获取文章列表、搜索文章的接口
      *
      * @return void
@@ -608,8 +633,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $this->lockMethod('get');
         $this->checkState('archives');
-        $showContent = trim($this->getParam('showContent', '')) === 'true';
-        $order = strtolower($this->getParam('order', ''));
+        $showContent = trim($this->getParams('showContent', '')) === 'true';
+        $order = strtolower($this->getParams('order', 'desc'));
 
         $select = $this->db->select('cid', 'title', 'slug', 'created', 'modified', 'type', 'text')
             ->from('table.contents')
@@ -636,10 +661,18 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 : array();
             array_push($archives[$year][$month], $post);
         }
-        // sort by date descend
-        krsort($archives, SORT_NUMERIC);
-        foreach ($archives as $archive) {
-            krsort($archive, SORT_NUMERIC);
+
+        // sort by date descend / ascend
+        if ($order !== 'asc') {
+            krsort($archives, SORT_NUMERIC);
+            foreach ($archives as $archive) {
+                krsort($archive, SORT_NUMERIC);
+            }
+        } else {
+            ksort($archives, SORT_NUMERIC);
+            foreach ($archives as $archive) {
+                ksort($archive, SORT_NUMERIC);
+            }
         }
 
         $this->throwData(array(
@@ -697,6 +730,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 unset($value['text']);
             }
         }
+        // Custom fields
+        $value['fields'] = $this->getCustomFields($value['cid']);
 
         return $value;
     }
