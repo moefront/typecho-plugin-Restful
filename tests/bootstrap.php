@@ -2,6 +2,10 @@
 use MoeFront\RestfulTests\Util;
 use SSX\Utility\Serve;
 
+if (php_sapi_name() !== 'cli') {
+    exit;
+}
+
 // Errors on full!
 ini_set('display_errors', 1);
 error_reporting(E_ALL | E_STRICT);
