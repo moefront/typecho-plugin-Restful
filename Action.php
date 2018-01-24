@@ -53,8 +53,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                     'name' => 'rest_' . $matches[1],
                     'shortName' => $matches[1],
                     'uri' => '/api/' . $matches[1],
-                    'description' => trim(str_replace(['/', '*'], '',
-                        substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@')))),
+                    'description' => trim(str_replace(
+                        ['/', '*'],
+                        '',
+                        substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@'))
+                    )),
                 ]);
             }
         }
@@ -200,23 +203,23 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function getCustomFields($cid)
     {
         $cfg = $this->config->fieldsPrivacy;
-        $filters = empty($cfg) ? array() : explode(',', $cfg);
+        $filters = empty($cfg) ? [] : explode(',', $cfg);
 
         $query = $this->db->select('*')->from('table.fields')
             ->where('cid = ?', $cid);
         $rows = $this->db->fetchAll($query);
-        $result = array();
+        $result = [];
         if (count($rows) > 0) {
             foreach ($rows as $key => $value) {
                 if (in_array($value['name'], $filters)) {
                     continue;
                 }
                 $type = $value['type'];
-                $result[$value['name']] = array(
+                $result[$value['name']] = [
                     "name" => $value['name'],
                     "type" => $value['type'],
                     "value" => $value[$value['type'] . '_value']
-                );
+                ];
             }
         }
         return $result;
@@ -417,7 +420,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         } else {
             $this->throwError('post not exists', 404);
         }
-
     }
 
     /**
@@ -510,8 +512,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('token invalid');
         }
 
-        $commentUrl = Typecho_Router::url('feedback',
-            ['type' => 'comment', 'permalink' => $result['pathinfo']], $this->options->index);
+        $commentUrl = Typecho_Router::url(
+            'feedback',
+            ['type' => 'comment', 'permalink' => $result['pathinfo']],
+            $this->options->index
+        );
 
         $postData = [
             'text' => $this->getParams('text', ''),
@@ -572,9 +577,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->checkState('settings');
 
         $key = trim($this->getParams('key', ''));
-        $allowed = array_merge(explode(',', $this->config->allowedOptions), array(
+        $allowed = array_merge(explode(',', $this->config->allowedOptions), [
             'title', 'description', 'keywords', 'timezone'
-        ));
+        ]);
 
         if (!empty($key)) {
             if (in_array($key, $allowed)) {
@@ -612,12 +617,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->from('table.users');
         if (!empty($uid)) {
             $select->where('uid = ?', $uid);
-        } else if (!empty($name)) {
+        } elseif (!empty($name)) {
             $select->where('name = ? OR screenName = ?', $name, $name);
         }
 
         $result = $this->db->fetchAll($select);
-        $users = array();
+        $users = [];
         foreach ($result as $key => $value) {
             $postSelector = $this->db->select('cid', 'title', 'slug', 'created', 'modified', 'type')
                 ->from('table.contents')
@@ -630,20 +635,20 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $posts[$postNumber] = $this->filter($post);
             }
 
-            array_push($users, array(
+            array_push($users, [
                 "uid" => $value['uid'],
                 "name" => $value['screenName'],
                 "mailHash" => md5($value['mail']),
                 "url" => $value['url'],
                 "count" => count($posts),
                 "posts" => $posts
-            ));
+            ]);
         }
 
-        $this->throwData(array(
+        $this->throwData([
             "count" => count($users),
             "dataSet" => $users
-        ));
+        ]);
     }
 
     /**
@@ -666,8 +671,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->order('created', $order === 'asc' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
         $posts = $this->db->fetchAll($select);
 
-        $archives = array();
-        $created = array();
+        $archives = [];
+        $created = [];
         foreach ($posts as $key => $post) {
             $post = $this->filter($post);
             if (!$showContent) {
@@ -677,10 +682,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $date = $post['created'];
             $year = date('Y', $date);
             $month = date('m', $date);
-            $archives[$year] = isset($archives[$year]) ? $archives[$year] : array();
+            $archives[$year] = isset($archives[$year]) ? $archives[$year] : [];
             $archives[$year][$month] = isset($archives[$year][$month])
                 ? $archives[$year][$month]
-                : array();
+                : [];
             array_push($archives[$year][$month], $post);
         }
 
@@ -697,10 +702,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             }
         }
 
-        $this->throwData(array(
+        $this->throwData([
             "count" => count($posts),
             "dataSet" => $archives
-        ));
+        ]);
     }
 
     /**
@@ -792,5 +797,4 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         return hash_equals($token, $this->generateCsrfToken($key));
     }
-
 }

@@ -112,7 +112,6 @@ class RestfulTest extends TestCase
         // ]);
         // $result = json_decode($response->getBody(), true);
         // $this->assertEquals('error', $result['status']);
-
     }
 
     public function testSettings()

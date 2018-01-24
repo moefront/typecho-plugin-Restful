@@ -113,5 +113,4 @@ class Restful_Plugin implements Typecho_Plugin_Interface
 
         return $comment;
     }
-
 }

@@ -62,11 +62,11 @@ class Util
                 $downloadTotal,
                 $downloadedBytes,
                 $uploadTotal,
-                $uploadedBytes) use ($progressBar) {
+                $uploadedBytes
+            ) use ($progressBar) {
                 if ($downloadTotal != 0) {
                     $progressBar->update(intval(floor($downloadedBytes / $downloadTotal * 1000)));
                 }
-
             },
         ]);
 
@@ -105,11 +105,13 @@ CREATE DATABASE `' . getenv('MYSQL_DB') . '`;');
             throw $e;
         }
 
-        exec(sprintf('mysql -u %s --password=%s %s < %s',
+        exec(sprintf(
+            'mysql -u %s --password=%s %s < %s',
             getenv('MYSQL_USER'),
             getenv('MYSQL_PWD'),
             getenv('MYSQL_DB'),
-            __DIR__ . '/typecho.sql'));
+            __DIR__ . '/typecho.sql'
+        ));
 
         $configFileContent = sprintf('<?php
 /**
@@ -220,8 +222,7 @@ call_user_func_array([Typecho_Widget::widget('Widget_Plugins_Edit'), Typecho_Req
             return unlink($dirPath);
         }
 
-        $files = new RecursiveIteratorIterator
-            (
+        $files = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($dirPath, RecursiveDirectoryIterator::SKIP_DOTS),
             RecursiveIteratorIterator::CHILD_FIRST
         );
