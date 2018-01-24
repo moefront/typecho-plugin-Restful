@@ -15,10 +15,10 @@ class RestfulTest extends TestCase
 
     public static function setUpBeforeClass()
     {
-        self::$client = new Client([
+        self::$client = new Client(array(
             'base_uri' => 'http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT'),
             'http_errors' => false,
-        ]);
+        ));
     }
 
     public function testPosts()
@@ -62,7 +62,7 @@ class RestfulTest extends TestCase
 
     public function testPost()
     {
-        $response = self::$client->get('/api/post', ['query' => ['cid' => 1]]);
+        $response = self::$client->get('/api/post', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -71,7 +71,7 @@ class RestfulTest extends TestCase
 
     public function testComments()
     {
-        $response = self::$client->get('/api/comments', ['query' => ['cid' => 1]]);
+        $response = self::$client->get('/api/comments', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -85,14 +85,14 @@ class RestfulTest extends TestCase
     public function testComment()
     {
         // without token
-        $response = self::$client->post('/api/comment', [
-            RequestOptions::JSON => [
+        $response = self::$client->post('/api/comment', array(
+            RequestOptions::JSON => array(
                 'cid' => 1,
                 'text' => '233',
                 'author' => 'test',
                 'mail' => 'test@qq.com',
-            ],
-        ]);
+            ),
+        ));
         $result = json_decode($response->getBody(), true);
         $this->assertEquals('error', $result['status']);
 
@@ -112,7 +112,6 @@ class RestfulTest extends TestCase
         // ]);
         // $result = json_decode($response->getBody(), true);
         // $this->assertEquals('error', $result['status']);
-
     }
 
     public function testSettings()

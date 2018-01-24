@@ -7,6 +7,7 @@
         "guiguiboy/php-cli-progress-bar": "^0.0.4",
         "guzzlehttp/guzzle": "~6.0",
         "phpunit/phpunit": "^6.0",
+        "squizlabs/php_codesniffer": "^3.2",
         "ssx/php-serve": "^0.0.3"
     },
     "autoload-dev": {
@@ -16,9 +17,13 @@
     },
     "scripts": {
         "test": [
-            "@phpunit"
+            "@phpunit",
+            "@phpcbf",
+            "@phpcs"
         ],
-        "phpunit": "php vendor/bin/phpunit"
+        "phpunit": "php vendor/bin/phpunit",
+        "phpcs": "php vendor/bin/phpcs -s",
+        "phpcbf": "php vendor/bin/phpcbf"
     },
     "config": {
         "process-timeout": 0,

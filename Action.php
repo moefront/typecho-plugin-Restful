@@ -41,21 +41,24 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     public static function getRoutes()
     {
-        $routes = [];
+        $routes = array();
         $reflectClass = new ReflectionClass(__CLASS__);
         foreach ($reflectClass->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectMethod) {
             $methodName = $reflectMethod->getName();
 
             preg_match('/(.*)Action$/', $methodName, $matches);
             if (isset($matches[1])) {
-                array_push($routes, [
+                array_push($routes, array(
                     'action' => $matches[0],
                     'name' => 'rest_' . $matches[1],
                     'shortName' => $matches[1],
                     'uri' => '/api/' . $matches[1],
-                    'description' => trim(str_replace(['/', '*'], '',
-                        substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@')))),
-                ]);
+                    'description' => trim(str_replace(
+                        array('/', '*'),
+                        '',
+                        substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@'))
+                    )),
+                ));
             }
         }
         return $routes;
@@ -141,11 +144,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function throwError($message = 'unknown', $status = 400)
     {
         Typecho_Response::setStatus($status);
-        $this->response->throwJson([
+        $this->response->throwJson(array(
             'status' => 'error',
             'message' => $message,
             'data' => null,
-        ]);
+        ));
     }
 
     /**
@@ -156,11 +159,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private function throwData($data)
     {
-        $this->response->throwJson([
+        $this->response->throwJson(array(
             'status' => 'success',
             'message' => '',
             'data' => $data,
-        ]);
+        ));
     }
 
     /**
@@ -241,7 +244,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $filterSlug = trim($this->getParams('filterSlug', ''));
         $showContent = trim($this->getParams('showContent', '')) === 'true';
 
-        if (in_array($filterType, ['category', 'tag', 'search'])) {
+        if (in_array($filterType, array('category', 'tag', 'search'))) {
             if ($filterSlug == '') {
                 $this->throwError('filter slug is empty');
             }
@@ -263,13 +266,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $cids = $this->db->fetchAll($select);
 
                 if (count($cids) == 0) {
-                    $this->throwData([
+                    $this->throwData(array(
                         'page' => (int) $page,
                         'pageSize' => (int) $pageSize,
                         'pages' => 0,
                         'count' => 0,
-                        'dataSet' => [],
-                    ]);
+                        'dataSet' => array(),
+                    ));
                 } else {
                     foreach ($cids as $key => $cid) {
                         $cids[$key] = $cids[$key]['cid'];
@@ -306,13 +309,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $result[$key] = $this->filter($result[$key]);
         }
 
-        $this->throwData([
+        $this->throwData(array(
             'page' => (int) $page,
             'pageSize' => (int) $pageSize,
             'pages' => ceil($count / $pageSize),
             'count' => $count,
             'dataSet' => $result,
-        ]);
+        ));
     }
 
     /**
@@ -337,10 +340,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $result = $this->db->fetchAll($select);
         $count = count($result);
 
-        $this->throwData([
+        $this->throwData(array(
             'count' => $count,
             'dataSet' => $result,
-        ]);
+        ));
     }
 
     /**
@@ -417,7 +420,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         } else {
             $this->throwError('post not exists', 404);
         }
-
     }
 
     /**
@@ -466,13 +468,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $finalResult = array_slice($newResult, $offset, $pageSize);
 
-        $this->throwData([
+        $this->throwData(array(
             'page' => (int) $page,
             'pageSize' => (int) $pageSize,
             'pages' => ceil($count / $pageSize),
             'count' => $count,
             'dataSet' => $finalResult,
-        ]);
+        ));
     }
 
     /**
@@ -510,15 +512,18 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('token invalid');
         }
 
-        $commentUrl = Typecho_Router::url('feedback',
-            ['type' => 'comment', 'permalink' => $result['pathinfo']], $this->options->index);
+        $commentUrl = Typecho_Router::url(
+            'feedback',
+            array('type' => 'comment', 'permalink' => $result['pathinfo']),
+            $this->options->index
+        );
 
-        $postData = [
+        $postData = array(
             'text' => $this->getParams('text', ''),
             'author' => $this->getParams('author', ''),
             'mail' => $this->getParams('mail', ''),
             'url' => $this->getParams('url', ''),
-        ];
+        );
 
         // Typecho 0.9- has no anti-spam security
         if (file_exists(__TYPECHO_ROOT_DIR__ . '/var/Widget/Security.php')) {
@@ -532,9 +537,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $commentUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'X-TYPECHO-RESTFUL-IP: ' . $this->request->getIp(),
-        ]);
+        ));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_USERAGENT, $this->request->getAgent());
@@ -587,12 +592,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             }
         }
 
-        $this->throwData([
+        $this->throwData(array(
             'title' => $this->options->title,
             'description' => $this->options->description,
             'keywords' => $this->options->keywords,
             'timezone' => $this->options->timezone,
-        ]);
+        ));
     }
 
     /**
@@ -612,7 +617,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->from('table.users');
         if (!empty($uid)) {
             $select->where('uid = ?', $uid);
-        } else if (!empty($name)) {
+        } elseif (!empty($name)) {
             $select->where('name = ? OR screenName = ?', $name, $name);
         }
 
@@ -792,5 +797,4 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         return hash_equals($token, $this->generateCsrfToken($key));
     }
-
 }
