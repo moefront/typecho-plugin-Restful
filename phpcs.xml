@@ -15,7 +15,7 @@
         <exclude name="Generic.Files.LineLength.TooLong"/>
     </rule>
 
-    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Arrays.DisallowShortArraySyntax"/>
 
     <!-- Paths to check -->
     <file>Plugin.php</file>

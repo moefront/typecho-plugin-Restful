@@ -13,11 +13,11 @@ error_reporting(E_ALL | E_STRICT);
 Util::downloadTypecho();
 
 // Start build-in server
-$server = new Serve([
+$server = new Serve(array(
     'address' => getenv('WEB_SERVER_HOST'),
     'port' => getenv('WEB_SERVER_PORT'),
     'document_root' => getenv('WEB_SERVER_DOCROOT'),
-]);
+));
 
 $server->start();
 

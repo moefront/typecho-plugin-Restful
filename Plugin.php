@@ -23,11 +23,11 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function activate()
     {
-        $routes = call_user_func([self::ACTION_CLASS, 'getRoutes']);
+        $routes = call_user_func(array(self::ACTION_CLASS, 'getRoutes'));
         foreach ($routes as $route) {
             Helper::addRoute($route['name'], $route['uri'], self::ACTION_CLASS, $route['action']);
         }
-        Typecho_Plugin::factory('Widget_Feedback')->comment = [__CLASS__, 'comment'];
+        Typecho_Plugin::factory('Widget_Feedback')->comment = array(__CLASS__, 'comment');
 
         return '_(:з」∠)_';
     }
@@ -42,7 +42,7 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function deactivate()
     {
-        $routes = call_user_func([self::ACTION_CLASS, 'getRoutes']);
+        $routes = call_user_func(array(self::ACTION_CLASS, 'getRoutes'));
         foreach ($routes as $route) {
             Helper::removeRoute($route['name']);
         }
@@ -60,14 +60,14 @@ class Restful_Plugin implements Typecho_Plugin_Interface
     public static function config(Typecho_Widget_Helper_Form $form)
     {
         /* API switcher */
-        $routes = call_user_func([self::ACTION_CLASS, 'getRoutes']);
+        $routes = call_user_func(array(self::ACTION_CLASS, 'getRoutes'));
         echo '<h3>API 状态设置</h3>';
 
         foreach ($routes as $route) {
-            $tmp = new Typecho_Widget_Helper_Form_Element_Radio($route['shortName'], [
+            $tmp = new Typecho_Widget_Helper_Form_Element_Radio($route['shortName'], array(
                 0 => _t('禁用'),
                 1 => _t('启用'),
-            ], 1, $route['uri'], _t($route['description']));
+            ), 1, $route['uri'], _t($route['description']));
             $form->addInput($tmp);
         }
         /* cross-origin settings */

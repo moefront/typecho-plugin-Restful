@@ -57,7 +57,7 @@ class Util
 
         self::mkdirs(self::$tmpPath);
 
-        $client = new Client([
+        $client = new Client(array(
             'progress' => function (
                 $downloadTotal,
                 $downloadedBytes,
@@ -68,12 +68,12 @@ class Util
                     $progressBar->update(intval(floor($downloadedBytes / $downloadTotal * 1000)));
                 }
             },
-        ]);
+        ));
 
         $request = new Request('get', $url);
-        $promise = $client->sendAsync($request, [
+        $promise = $client->sendAsync($request, array(
             'sink' => $filePath,
-        ]);
+        ));
         $promise->then(function (Response $resp) {
             echo 'download completed' . PHP_EOL;
         }, function (RequestException $e) {
@@ -197,9 +197,9 @@ call_user_func_array([Typecho_Widget::widget('Widget_Plugins_Edit'), Typecho_Req
 ");
         $actionUrl = 'http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT') . '/restful.php';
 
-        $client = new Client([
+        $client = new Client(array(
             'allow_redirects' => false,
-        ]);
+        ));
 
         $client->get($actionUrl . '?action=deactivate');
         $client->get($actionUrl . '?action=activate');
