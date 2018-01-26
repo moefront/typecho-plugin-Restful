@@ -457,16 +457,21 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $result = $this->db->fetchAll($select);
 
-        $newResult = $this->findChild($result, 'coid', 'parent');
-        foreach ($newResult as $index => $comment) {
-            if (isset($comment['parent']) && $comment['parent'] != 0) {
-                unset($newResult[$index]);
+        if (count($result) <= 0) {
+            $count = 0;
+            $finalResult = array();
+        } else {
+            $newResult = $this->findChild($result, 'coid', 'parent');
+            foreach ($newResult as $index => $comment) {
+                if (isset($comment['parent']) && $comment['parent'] != 0) {
+                    unset($newResult[$index]);
+                }
             }
-        }
-        $newResult = array_merge($newResult);
-        $count = count($newResult);
+            $newResult = array_merge($newResult);
+            $count = count($newResult);
 
-        $finalResult = array_slice($newResult, $offset, $pageSize);
+            $finalResult = array_slice($newResult, $offset, $pageSize);
+        }
 
         $this->throwData(array(
             'page' => (int) $page,
@@ -719,6 +724,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private function findChild($ar, $id = 'id', $pid = 'pid')
     {
+        $t = array();
+
         foreach ($ar as $v) {
             $t[$v[$id]] = $v;
         }
