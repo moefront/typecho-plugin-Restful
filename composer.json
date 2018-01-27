@@ -1,6 +1,27 @@
 {
+    "name": "moefront/typecho-plugin-restful",
+    "type": "plugin",
+    "description":
+        "Yet another awesome Typecho plugin to make your blog RESTful.",
+    "license": "MIT",
+    "keywords": ["typecho", "typecho plugin"],
+    "homepage": "https://github.com/moefront/typecho-plugin-Restful",
+    "authors": [
+        {
+            "name": "kirainmoe",
+            "email": "i@kirainmoe.com"
+        },
+        {
+            "name": "kokororin",
+            "email": "i@kotori.love"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/moefront/typecho-plugin-Restful/issues",
+        "source": "https://github.com/moefront/typecho-plugin-Restful"
+    },
     "require": {
-        "php": ">=5.4.0",
+        "php": ">=5.3.0",
         "ext-curl": "*"
     },
     "require-dev": {
@@ -16,11 +37,7 @@
         }
     },
     "scripts": {
-        "test": [
-            "@phpunit",
-            "@phpcbf",
-            "@phpcs"
-        ],
+        "test": ["@phpunit", "@phpcbf", "@phpcs"],
         "phpunit": "php vendor/bin/phpunit",
         "phpcs": "php vendor/bin/phpcs -s",
         "phpcbf": "php vendor/bin/phpcbf"
@@ -29,8 +46,10 @@
         "process-timeout": 0,
         "sort-packages": true
     },
-    "repositories": [{
-        "type": "composer",
-        "url": "https://packagist.laravel-china.org"
-    }]
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packagist.laravel-china.org"
+        }
+    ]
 }
