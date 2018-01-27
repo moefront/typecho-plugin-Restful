@@ -440,6 +440,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $cid = $this->getParams('cid', '');
         $order = strtolower($this->getParams('order', ''));
 
+        if (empty($cid) && empty($slug)) {
+            $this->throwError('No specified posts.', 404);
+        }
+
         $select = $this->db
             ->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text')
             ->from('table.comments')
@@ -461,13 +465,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $count = 0;
             $finalResult = array();
         } else {
-            $newResult = $this->findChild($result, 'coid', 'parent');
-            foreach ($newResult as $index => $comment) {
-                if (isset($comment['parent']) && $comment['parent'] != 0) {
-                    unset($newResult[$index]);
-                }
-            }
-            $newResult = array_merge($newResult);
+            $newResult = $this->buildNodes($result);
             $count = count($newResult);
 
             $finalResult = array_slice($newResult, $offset, $pageSize);
@@ -714,28 +712,57 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
-     * 创建子节点树形数组
+     * 构造文章评论关系树
      *
-     * @param array  $ar  邻接列表方式组织的数据
-     * @param string $id  数组中作为主键的下标或关联键名
-     * @param string $pid 数组中作为父键的下标或关联键名
-     *
-     * @return array
+     * @param array $comments 评论的集合
+     * @return array          返回构造后的评论关系数组
      */
-    private function findChild($ar, $id = 'id', $pid = 'pid')
+    private function buildNodes($comments)
     {
-        $t = array();
+        $childMap = array();
+        $parentMap = array();
+        $tree = array();
 
-        foreach ($ar as $v) {
-            $t[$v[$id]] = $v;
-        }
-
-        foreach ($t as $k => $item) {
-            if ($item[$pid]) {
-                $t[$item[$pid]]['child'] = &$t[$k];
+        foreach ($comments as $index => $comment) {
+            $parent = (int) $comment['parent'];
+            if ($parent !== 0) {
+                if (!isset($childMap[$parent])) {
+                    $childMap[$parent] = array();
+                }
+                array_push($childMap[$parent], $index);
+            } else {
+                array_push($parentMap, $index);
             }
         }
-        return $t;
+
+        $tree = $this->recursion($comments, $parentMap, $childMap);
+        return $tree;
+    }
+
+    /**
+     * 通过递归构建评论父子关系
+     *
+     * @param array $comments 评论集合
+     * @param array $parents  父评论的 key 集合
+     * @param array $map      子评论与父评论的映射关系
+     * @return array          返回处理后的结果集合
+     */
+    private function recursion($comments, $parents, $map)
+    {
+        $result = array();
+
+        foreach ($parents as $parent) {
+            $item = &$comments[$parent];
+            $coid = (int) $item['coid'];
+            if (isset($map[$coid])) {
+                $item['children'] = $this->recursion($comments, $map[$coid], $map);
+            } else {
+                $item['children'] = array();
+            }
+            array_push($result, $item);
+        }
+
+        return $result;
     }
 
     /**
