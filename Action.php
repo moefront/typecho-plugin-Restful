@@ -714,7 +714,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     /**
      * 构造文章评论关系树
      *
-     * @param array $comments 评论的集合
+     * @param array $raw      评论的集合
      * @return array          返回构造后的评论关系数组
      */
     private function buildNodes($comments)
@@ -724,6 +724,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $tree = array();
 
         foreach ($comments as $index => $comment) {
+            $comments[$index]['mailHash'] = md5($comment['mail']);
+            unset($comments[$index]['mail']);                      // avoid exposing users' email to public
+
             $parent = (int) $comment['parent'];
             if ($parent !== 0) {
                 if (!isset($childMap[$parent])) {
