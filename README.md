@@ -1,6 +1,7 @@
 # Typecho Restful 插件
 
 [![Build Status](https://travis-ci.org/moefront/typecho-plugin-Restful.svg?branch=master)](https://travis-ci.org/moefront/typecho-plugin-Restful)
+[![Version](https://badge.fury.io/ph/moefront%2Ftypecho-plugin-restful.svg)](https://packagist.org/packages/moefront/typecho-plugin-restful)
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 ![built by](https://img.shields.io/badge/built_by-MoeFront-ff69b4.svg)
 
@@ -10,7 +11,17 @@
 
 ## 食用方法
 
+### 常规
+
 下载插件并解压，将解压后的目录重命名为 `Restful` (区分大小写)，然后到后台插件管理页面启用并设置即可。
+
+### 使用 Composer 安装
+
+```bash
+cd /path/to/typecho/usr/plugins
+composer create-project moefront/typecho-plugin-restful Restful --prefer-dist --stability=dev
+chown www:www -R Restful
+```
 
 ## API
 
