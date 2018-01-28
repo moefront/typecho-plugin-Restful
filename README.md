@@ -91,7 +91,7 @@ PS：此处`Content-Type`为`application/json`, 也就是说你应当以 JSON �
 | uid      | int    | 已注册用户评论时，用户的 UID      | 可选   |
 | authCode | string | 已注册用户评论时，用户的 authCode | 可选   |
 
-PS2: uid 和 authCode 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上 Cookie 请求 API 则不再需要带上 `uid` 和 `authCode` 参数。
+PS2: uid 和 authCode 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上 Cookie 请求 API 则不再需要带上 `uid` 和 `authCode` 参数。请求时需要带上合法的 User-Agent.
 
 ### 设置项
 
