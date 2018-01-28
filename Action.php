@@ -564,7 +564,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         if (!empty($authCode)) {
             $cookiePrefix = Typecho_Cookie::getPrefix();
-            $cookieText = $cookiePrefix . '__typecho_uid=' . $uid . '; ' . $cookiePrefix . '__typecho_authCode' . $authCode . ';';
+            $cookieText = $cookiePrefix . '__typecho_uid=' . $uid . '; ' . $cookiePrefix . '__typecho_authCode=' . $authCode . ';';
             curl_setopt($ch, CURLOPT_COOKIE, $cookieText);
         }
 

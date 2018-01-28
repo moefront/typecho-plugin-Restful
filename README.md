@@ -76,18 +76,22 @@ chown www:www -R Restful
 
 `POST /api/comment`
 
-PS：此处`Content-Type`为`application/json`
+PS：此处`Content-Type`为`application/json`, 也就是说你应当以 JSON 格式提交数据。
 
-| 参数   | 类型   | 描述                      |        |
-| ------ | ------ | ------------------------- | ------ |
-| cid    | int    | 文章 ID                   | 二选一 |
-| slug   | string | 文章别名                  | 二选一 |
-| parent | int    | 父级评论 ID               | 可选   |
-| text   | string | 评论内容                  | 必须   |
-| author | string | 作者                      | 必须   |
-| mail   | string | 邮箱                      | 必须   |
-| url    | string | URL                       | 可选   |
-| token  | string | 文章/页面详情返回的 token  | 必须   |
+| 参数     | 类型    | 描述                           |        |
+| -------- | ------ | ------------------------------ | ------ |
+| cid      | int    | 文章 ID                         | 二选一 |
+| slug     | string | 文章别名                        | 二选一 |
+| parent   | int    | 父级评论 ID                     | 可选   |
+| text     | string | 评论内容                        | 必须   |
+| author   | string | 作者                            | 必须   |
+| mail     | string | 邮箱                            | 必须   |
+| url      | string | URL                            | 可选   |
+| token    | string | 文章/页面详情返回的 token        | 必须   |
+| uid      | int    | 已注册用户评论时，用户的 UID      | 可选   |
+| authCode | string | 已注册用户评论时，用户的 authCode | 可选   |
+
+PS2: uid 和 authCode 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上 Cookie 请求 API 则不再需要带上 `uid` 和 `authCode` 参数。
 
 ### 设置项
 
