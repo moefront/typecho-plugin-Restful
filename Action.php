@@ -494,6 +494,15 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $cid = $this->getParams('cid', '');
         $token = $this->getParams('token', '');
 
+        // administrator
+        $uid = $this->getParams('uid', null);
+        $authCode = $this->getParams('authCode', null);
+        $cookie = Typecho_Cookie::get('__typecho_uid');
+        if (!empty($cookie)) {
+            $uid = $cookie;
+            $authCode = Typecho_Cookie::get('__typecho_authCode');
+        }
+
         $select = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
             ->where('password IS NULL');
@@ -521,11 +530,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->options->index
         );
 
-        $postData = array(
+        $postData = empty($authCode) ? array(
             'text' => $this->getParams('text', ''),
             'author' => $this->getParams('author', ''),
             'mail' => $this->getParams('mail', ''),
             'url' => $this->getParams('url', ''),
+        ) : array(
+            'text' => $this->getParams('text')
         );
 
         // Typecho 0.9- has no anti-spam security
@@ -550,6 +561,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // no verify ssl
+
+        if (!empty($authCode)) {
+            $cookiePrefix = Typecho_Cookie::getPrefix();
+            $cookieText = $cookiePrefix . '__typecho_uid=' . $uid . '; ' . $cookiePrefix . '__typecho_authCode' . $authCode . ';';
+            curl_setopt($ch, CURLOPT_COOKIE, $cookieText);
+        }
+
         $data = curl_exec($ch);
 
         if (curl_error($ch)) {
