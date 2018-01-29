@@ -97,21 +97,20 @@ class RestfulTest extends TestCase
         $this->assertEquals('error', $result['status']);
 
         // with token and invalid form value
-        // TODO local server would down
-
-        // $response = self::$client->get('/api/post', ['query' => ['cid' => 1]]);
-        // $result = json_decode($response->getBody(), true);
-        // $response = self::$client->post('/api/comment', [
-        //     RequestOptions::JSON => [
-        //         'cid' => 1,
-        //         'text' => '233',
-        //         'author' => 'test',
-        //         'mail' => 'testqq.com',
-        //         'token' => $result['data']['csrfToken'],
-        //     ],
-        // ]);
-        // $result = json_decode($response->getBody(), true);
-        // $this->assertEquals('error', $result['status']);
+        $response = self::$client->get('/api/post', array('query' => array('cid' => 1)));
+        $result = json_decode($response->getBody(), true);
+        $response = self::$client->post('/api/comment', array(
+            RequestOptions::JSON => array(
+                'cid' => 1,
+                'text' => '233',
+                'author' => 'test',
+                'mail' => 'testqq.com',
+                'token' => $result['data']['csrfToken'],
+            ),
+        ));
+        $result = json_decode($response->getBody(), true);
+        $this->assertEquals('error', $result['status']);
+        $this->assertEquals('邮箱地址不合法', $result['message']);
     }
 
     public function testSettings()

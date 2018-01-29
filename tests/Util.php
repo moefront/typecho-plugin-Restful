@@ -178,7 +178,11 @@ $db->addServer(array (
   "engine" => "InnoDB",
 ), Typecho_Db::READ | Typecho_Db::WRITE);
 Typecho_Db::set($db);
-', getenv('MYSQL_HOST'), getenv('MYSQL_USER'), getenv('MYSQL_PWD'), getenv('MYSQL_DB'));
+
+define("WEB_SERVER_PORT", "%s");
+define("FORKED_WEB_SERVER_PORT", "%s");
+define("IN_PHPUNIT_SERVER", true);
+', getenv('MYSQL_HOST'), getenv('MYSQL_USER'), getenv('MYSQL_PWD'), getenv('MYSQL_DB'), getenv('WEB_SERVER_PORT'), getenv('FORKED_WEB_SERVER_PORT'));
 
         file_put_contents(self::$typechoDir . '/config.inc.php', $configFileContent);
 
