@@ -218,7 +218,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $result[$value['name']] = array(
                     "name" => $value['name'],
                     "type" => $value['type'],
-                    "value" => $value[$value['type'] . '_value']
+                    "value" => $value[$value['type'] . '_value'],
                 );
             }
         }
@@ -529,6 +529,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             array('type' => 'comment', 'permalink' => $result['pathinfo']),
             $this->options->index
         );
+        if (defined('IN_PHPUNIT_SERVER')) {
+            $commentUrl = str_replace(':' . WEB_SERVER_PORT, ':' . FORKED_WEB_SERVER_PORT, $commentUrl);
+        }
 
         $postData = empty($authCode) ? array(
             'text' => $this->getParams('text', ''),
@@ -536,7 +539,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             'mail' => $this->getParams('mail', ''),
             'url' => $this->getParams('url', ''),
         ) : array(
-            'text' => $this->getParams('text')
+            'text' => $this->getParams('text'),
         );
 
         // Typecho 0.9- has no anti-spam security
@@ -556,6 +559,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         ));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_USERAGENT, $this->request->getAgent());
         curl_setopt($ch, CURLOPT_REFERER, $result['permalink']);
         curl_setopt($ch, CURLOPT_POST, 1);
@@ -599,7 +604,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $key = trim($this->getParams('key', ''));
         $allowed = array_merge(explode(',', $this->config->allowedOptions), array(
-            'title', 'description', 'keywords', 'timezone'
+            'title', 'description', 'keywords', 'timezone',
         ));
 
         if (!empty($key)) {
@@ -662,13 +667,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 "mailHash" => md5($value['mail']),
                 "url" => $value['url'],
                 "count" => count($posts),
-                "posts" => $posts
+                "posts" => $posts,
             ));
         }
 
         $this->throwData(array(
             "count" => count($users),
-            "dataSet" => $users
+            "dataSet" => $users,
         ));
     }
 
@@ -705,8 +710,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $month = date('m', $date);
             $archives[$year] = isset($archives[$year]) ? $archives[$year] : array();
             $archives[$year][$month] = isset($archives[$year][$month])
-                ? $archives[$year][$month]
-                : array();
+            ? $archives[$year][$month]
+            : array();
             array_push($archives[$year][$month], $post);
         }
 
@@ -725,7 +730,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $this->throwData(array(
             "count" => count($posts),
-            "dataSet" => $archives
+            "dataSet" => $archives,
         ));
     }
 
@@ -743,7 +748,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         foreach ($comments as $index => $comment) {
             $comments[$index]['mailHash'] = md5($comment['mail']);
-            unset($comments[$index]['mail']);                      // avoid exposing users' email to public
+            unset($comments[$index]['mail']); // avoid exposing users' email to public
 
             $parent = (int) $comment['parent'];
             if ($parent !== 0) {

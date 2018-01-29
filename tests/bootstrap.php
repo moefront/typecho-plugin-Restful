@@ -13,17 +13,24 @@ error_reporting(E_ALL | E_STRICT);
 Util::downloadTypecho();
 
 // Start build-in server
-$server = new Serve(array(
+$server[] = new Serve(array(
     'address' => getenv('WEB_SERVER_HOST'),
     'port' => getenv('WEB_SERVER_PORT'),
     'document_root' => getenv('WEB_SERVER_DOCROOT'),
 ));
+$server[] = new Serve(array(
+    'address' => getenv('WEB_SERVER_HOST'),
+    'port' => getenv('FORKED_WEB_SERVER_PORT'),
+    'document_root' => getenv('WEB_SERVER_DOCROOT'),
+));
 
-$server->start();
+$server[0]->start();
+$server[1]->start();
 
 // Kill the web server when the process ends
 register_shutdown_function(function () use ($server) {
-    $server->stop();
+    $server[0]->stop();
+    $server[1]->stop();
 });
 
 // Set env
