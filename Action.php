@@ -735,6 +735,52 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * 插件更新接口
+     *
+     * @return void
+     */
+    public function upgradeAction()
+    {
+        $this->lockMethod('get');
+
+        $isAdmin = call_user_func(function () {
+            $hasLogin = $this->widget('Widget_User')->hasLogin();
+            $isAdmin = false;
+            if (!$hasLogin) {
+                return false;
+            }
+            $isAdmin = $this->widget('Widget_User')->pass('administrator', true);
+            return $isAdmin;
+        }, $this);
+
+        if (!$isAdmin) {
+            $this->throwError('must be admin');
+        }
+
+        $localPluginPath = __DIR__ . '/Plugin.php';
+        $localActionPath = __DIR__ . '/Action.php';
+        $localPluginContent = file_get_contents($localPluginPath);
+        $localActionContent = file_get_contents($localActionPath);
+
+        $remotePluginContent = file_get_contents('https://raw.githubusercontent.com/moefront/typecho-plugin-Restful/master/Plugin.php');
+        $remoteActionContent = file_get_contents('https://raw.githubusercontent.com/moefront/typecho-plugin-Restful/master/Action.php');
+
+        if (!$remotePluginContent || $remoteActionContent) {
+            $this->throwError('unable to connect to GitHub');
+        }
+
+        if (md5($localPluginContent) != md5($remotePluginContent)
+            || md5($localActionContent) != md5($remoteActionContent)) {
+            if (file_put_contents($localPluginPath, $remotePluginContent)
+                && file_put_contents($localActionPath, $remoteActionContent)) {
+                $this->throwData(null);
+            } else {
+                $this->throwError('upgrade failed');
+            }
+        }
+    }
+
+    /**
      * 构造文章评论关系树
      *
      * @param array $raw      评论的集合

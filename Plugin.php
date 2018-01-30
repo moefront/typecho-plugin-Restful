@@ -64,6 +64,9 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         echo '<h3>API 状态设置</h3>';
 
         foreach ($routes as $route) {
+            if ($route['shortName'] == 'upgrade') {
+                continue;
+            }
             $tmp = new Typecho_Widget_Helper_Form_Element_Radio($route['shortName'], array(
                 0 => _t('禁用'),
                 1 => _t('启用'),
@@ -85,6 +88,38 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         /* CSRF token salt */
         $csrfSalt = new Typecho_Widget_Helper_Form_Element_Text('csrfSalt', null, '05faabd6637f7e30c797973a558d4372', _t('CSRF加密盐'), _t('请务必修改本参数，以防止跨站攻击。'));
         $form->addInput($csrfSalt);
+
+        echo '<button type="button" class="btn" style="outline: 0" onclick="restfulUpgrade(this)">' . _t('检查并更新'). '</button>';
+        ?>
+<script>
+function restfulUpgrade(e) {
+    var originalText = e.innerHTML;
+    var waitingText = '<?php echo _t('请稍后...');?>';
+    if (e.innerHTML === waitingText) {
+        return;
+    }
+    e.innerHTML = waitingText;
+    var x = new XMLHttpRequest();
+    x.open('GET', '<?php echo rtrim(Helper::options()->index, '/') . '/api/upgrade';?>', true);
+    x.onload = function() {
+        var data = JSON.parse(x.responseText);
+        if (x.status >= 200 && x.status < 400) {
+            if (data.status === 'success') {
+                alert('<?php echo _t('更新成功，您可能需要禁用插件再启用。');?>');
+            } else {
+                alert(data.message);
+            }
+        } else {
+            alert(data.message);
+        }
+    };
+    x.onerror = function() {
+        alert('<?php echo _t('网络异常，请稍后再试');?>');
+    };
+    x.send();
+}
+</script>
+<?php
     }
 
     /**
