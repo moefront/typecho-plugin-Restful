@@ -589,7 +589,13 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             }
         }
 
-        $this->throwData(null);
+        $query = $this->db->select('coid', 'status')
+            ->from('table.comments')
+            ->where('text = ?', $text)
+            ->order('created', Typecho_Db::SORT_DESC);
+        $res = $this->db->fetchRow($query);
+
+        $this->throwData($res);
     }
 
     /**
