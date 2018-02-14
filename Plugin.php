@@ -7,7 +7,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
  *
  * @package Restful
  * @author MoeFront Studio
- * @version 1.0.0
+ * @version 1.1.0
  * @link https://moefront.github.io
  */
 class Restful_Plugin implements Typecho_Plugin_Interface
