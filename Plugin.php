@@ -7,7 +7,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
  *
  * @package Restful
  * @author MoeFront Studio
- * @version 1.1.0
+ * @version 1.1.1
  * @link https://moefront.github.io
  */
 class Restful_Plugin implements Typecho_Plugin_Interface
@@ -59,6 +59,9 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function config(Typecho_Widget_Helper_Form $form)
     {
+        echo '<button type="button" class="btn" style="outline: 0" onclick="restfulUpgrade(this)">' . _t('检查并更新插件'). '</button>';
+
+        $prefix = defined('__TYPECHO_RESTFUL_PREFIX__') ? __TYPECHO_RESTFUL_PREFIX__ : '/api/';
         /* API switcher */
         $routes = call_user_func(array(self::ACTION_CLASS, 'getRoutes'));
         echo '<h3>API 状态设置</h3>';
@@ -88,8 +91,6 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         /* CSRF token salt */
         $csrfSalt = new Typecho_Widget_Helper_Form_Element_Text('csrfSalt', null, '05faabd6637f7e30c797973a558d4372', _t('CSRF加密盐'), _t('请务必修改本参数，以防止跨站攻击。'));
         $form->addInput($csrfSalt);
-
-        echo '<button type="button" class="btn" style="outline: 0" onclick="restfulUpgrade(this)">' . _t('检查并更新'). '</button>';
         ?>
 <script>
 function restfulUpgrade(e) {
@@ -100,7 +101,7 @@ function restfulUpgrade(e) {
     }
     e.innerHTML = waitingText;
     var x = new XMLHttpRequest();
-    x.open('GET', '<?php echo rtrim(Helper::options()->index, '/') . '/api/upgrade';?>', true);
+    x.open('GET', '<?php echo rtrim(Helper::options()->index, '/') . $prefix . 'upgrade';?>', true);
     x.onload = function() {
         var data = JSON.parse(x.responseText);
         if (x.status >= 200 && x.status < 400) {
