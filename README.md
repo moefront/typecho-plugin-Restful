@@ -74,6 +74,14 @@ chown www:www -R Restful
 
 PS: 如果带上 Cookie 请求，会显示当前 Cookie 记住的用户所发布的待审核的评论。
 
+### 最近评论
+
+`GET /api/recentComments`
+
+| 参数     | 类型   | 描述                     |        |
+| -------- | ------ | ------------------------ | ------ |
+| size     | int    | 最近评论的条数，默认为 9 | 可选   |
+
 ### 发表评论
 
 `POST /api/comment`
