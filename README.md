@@ -72,11 +72,19 @@ chown www:www -R Restful
 | cid      | int    | 文章 ID                | 二选一 |
 | slug     | string | 文章别名               | 二选一 |
 
+PS: 如果带上 Cookie 请求，会显示当前 Cookie 记住的用户所发布的待审核的评论。
+
+### 最近评论
+
+`GET /api/recentComments`
+
+| 参数     | 类型   | 描述                     |        |
+| -------- | ------ | ------------------------ | ------ |
+| size     | int    | 最近评论的条数，默认为 9 | 可选   |
+
 ### 发表评论
 
 `POST /api/comment`
-
-PS：此处`Content-Type`为`application/json`, 也就是说你应当以 JSON 格式提交数据。
 
 | 参数     | 类型    | 描述                           |        |
 | -------- | ------ | ------------------------------ | ------ |
@@ -91,7 +99,9 @@ PS：此处`Content-Type`为`application/json`, 也就是说你应当以 JSON �
 | uid      | int    | 已注册用户评论时，用户的 UID      | 可选   |
 | authCode | string | 已注册用户评论时，用户的 authCode | 可选   |
 
-PS2: uid 和 authCode 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上 Cookie 请求 API 则不再需要带上 `uid` 和 `authCode` 参数。请求时需要带上合法的 User-Agent.
+PS：此处`Content-Type`为`application/json`, 也就是说你应当以 JSON 格式提交数据。
+
+PS2: uid 和 authCode 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上 Cookie 请求此 API 则不再需要带上 `uid` 和 `authCode` 参数。请求时需要带上合法的 User-Agent.
 
 ### 设置项
 
@@ -116,6 +126,20 @@ PS：默认按从新到旧 (desc) 顺序排列文章。
 | ------------ | ------- | -------------------------- | --- |
 | showContent  | bool    | 是否显示文章内容            | 可选 |
 | order        | string  | 归档的排序方式 (asc / desc) | 可选 |
+
+## 其它
+
+### 自定义 URI 前缀
+
+默认情况下 Restful 插件会占用 `/api/*` 用于不同的接口。如果该 URI 有其它用途，或与其它插件冲突，或者由于某些不可描述的原因用户不希望暴露该接口，可以选择通过修改 `config.inc.php` 自定义前缀。
+
+例如，在 `config.inc.php` 文件中加入下列内容：
+
+```php
+define('__TYPECHO_RESTFUL_PREFIX__', '/rest/');
+```
+
+**重新启用插件**，此时你可以通过 `/rest/*` 访问相关 API.
 
 ## License
 

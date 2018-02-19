@@ -43,6 +43,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $routes = array();
         $reflectClass = new ReflectionClass(__CLASS__);
+        $prefix = defined('__TYPECHO_RESTFUL_PREFIX__') ? __TYPECHO_RESTFUL_PREFIX__ : '/api/';
+
         foreach ($reflectClass->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectMethod) {
             $methodName = $reflectMethod->getName();
 
@@ -52,7 +54,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                     'action' => $matches[0],
                     'name' => 'rest_' . $matches[1],
                     'shortName' => $matches[1],
-                    'uri' => '/api/' . $matches[1],
+                    'uri' => $prefix . $matches[1],
                     'description' => trim(str_replace(
                         array('/', '*'),
                         '',
@@ -423,6 +425,31 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * 获取最新（最近）评论的接口
+     *
+     * @return void
+     */
+    public function recentCommentsAction()
+    {
+        $this->lockMethod('get');
+        $this->checkStaet('recentComments');
+
+        $size = $this->getParams('size', 9);
+        $query = $this->db
+            ->select('coid', 'cid', 'author', 'text')
+            ->from('table.comments')
+            ->where('type = ? AND status = ?', 'comment', 'approved')
+            ->order('created', Typecho_Db::SORT_DESC)
+            ->limit($size);
+        $result = $this->db->fetchAll($query);
+
+        $this->throwData(array(
+            'count' => count($result),
+            'dataSet' => $result
+        ));
+    }
+
+    /**
      * 获取文章、独立页面评论列表的接口
      *
      * @return void
@@ -440,18 +467,28 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $cid = $this->getParams('cid', '');
         $order = strtolower($this->getParams('order', ''));
 
+        // 为带 cookie 请求的用户显示正在等待审核的评论
+        $author = Typecho_Cookie::get('__typecho_remember_author');
+        $mail = Typecho_Cookie::get('__typecho_remember_mail');
+
         if (empty($cid) && empty($slug)) {
             $this->throwError('No specified posts.', 404);
         }
 
         $select = $this->db
-            ->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text')
+            ->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text', 'table.comments.status')
             ->from('table.comments')
             ->join('table.contents', 'table.comments.cid = table.contents.cid', Typecho_Db::LEFT_JOIN)
             ->where('table.comments.type = ?', 'comment')
-            ->where('table.comments.status = ?', 'approved')
             ->group('table.comments.coid')
             ->order('table.comments.created', $order === 'asc' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
+
+        if (empty($author)) {
+            $select->where('table.comments.status = ?', 'approved');
+        } else {
+            $select
+                ->where('table.comments.status = ? OR (table.comments.author = ? AND table.comments.mail = ?)', 'approved', $author, $mail);
+        }
 
         if (is_numeric($cid)) {
             $select->where('table.comments.cid = ?', $cid);
