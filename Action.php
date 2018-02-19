@@ -432,7 +432,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     public function recentCommentsAction()
     {
         $this->lockMethod('get');
-        $this->checkStaet('recentComments');
+        $this->checkState('recentComments');
 
         $size = $this->getParams('size', 9);
         $query = $this->db
@@ -808,7 +808,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $remotePluginContent = file_get_contents('https://raw.githubusercontent.com/moefront/typecho-plugin-Restful/master/Plugin.php');
         $remoteActionContent = file_get_contents('https://raw.githubusercontent.com/moefront/typecho-plugin-Restful/master/Action.php');
 
-        if (!$remotePluginContent || $remoteActionContent) {
+        if (!$remotePluginContent || !$remoteActionContent) {
             $this->throwError('unable to connect to GitHub');
         }
 
