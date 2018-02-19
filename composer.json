@@ -25,6 +25,7 @@
         "ext-curl": "*"
     },
     "require-dev": {
+        "catfan/medoo": "~1.5",
         "guiguiboy/php-cli-progress-bar": "^0.0.4",
         "guzzlehttp/guzzle": "~6.0",
         "phpunit/phpunit": "^6.0",
@@ -40,16 +41,10 @@
         "test": ["@phpunit", "@phpcbf", "@phpcs"],
         "phpunit": "php vendor/bin/phpunit",
         "phpcs": "php vendor/bin/phpcs -s",
-        "phpcbf": "php vendor/bin/phpcbf"
+        "phpcbf": "php vendor/bin/phpcbf || true"
     },
     "config": {
         "process-timeout": 0,
         "sort-packages": true
-    },
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://packagist.laravel-china.org"
-        }
-    ]
+    }
 }
