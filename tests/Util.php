@@ -6,8 +6,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use PDO;
-use PDOException;
 use PharData;
 use ProgressBar\Manager;
 use RecursiveDirectoryIterator;
@@ -96,14 +94,13 @@ class Util
      */
     public static function installTypecho()
     {
-        try {
-            $pdo = new PDO('mysql:host=' . getenv('MYSQL_HOST'), getenv('MYSQL_USER'), getenv('MYSQL_PWD'));
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $pdo->exec('DROP DATABASE IF EXISTS `' . getenv('MYSQL_DB') . '`;
-CREATE DATABASE `' . getenv('MYSQL_DB') . '`;');
-        } catch (PDOException $e) {
-            throw $e;
-        }
+        exec(sprintf(
+            "echo 'DROP DATABASE IF EXISTS `%s`; CREATE DATABASE `%s`;' | mysql -u %s --password=%s",
+            getenv('MYSQL_DB'),
+            getenv('MYSQL_DB'),
+            getenv('MYSQL_USER'),
+            getenv('MYSQL_PWD')
+        ));
 
         exec(sprintf(
             'mysql -u %s --password=%s %s < %s',

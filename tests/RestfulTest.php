@@ -3,6 +3,7 @@ namespace MoeFront\RestfulTests;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
+use Medoo\Medoo;
 use PHPUnit\Framework\TestCase;
 
 if (php_sapi_name() !== 'cli') {
@@ -13,11 +14,21 @@ class RestfulTest extends TestCase
 {
     private static $client;
 
+    private static $db;
+
     public static function setUpBeforeClass()
     {
         self::$client = new Client(array(
             'base_uri' => 'http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT'),
             'http_errors' => false,
+        ));
+
+        self::$db = new Medoo(array(
+            'database_type' => 'mysql',
+            'database_name' => getenv('MYSQL_DB'),
+            'server' => getenv('MYSQL_HOST'),
+            'username' => getenv('MYSQL_USER'),
+            'password' => getenv('MYSQL_PWD'),
         ));
     }
 
@@ -111,6 +122,26 @@ class RestfulTest extends TestCase
         $result = json_decode($response->getBody(), true);
         $this->assertEquals('error', $result['status']);
         $this->assertEquals('邮箱地址不合法', $result['message']);
+
+        // insert a normal user comment
+        $response = self::$client->get('/api/post', array('query' => array('cid' => 1)));
+        $result = json_decode($response->getBody(), true);
+        $response = self::$client->post('/api/comment', array(
+            RequestOptions::JSON => array(
+                'cid' => 1,
+                'text' => '233',
+                'author' => 'test',
+                'mail' => 'test@qq.com',
+                'token' => $result['data']['csrfToken'],
+            ),
+        ));
+        $count = self::$db->count('typecho_comments', array(
+            'cid' => 1,
+            'text' => '233',
+            'author' => 'test',
+            'mail' => 'test@qq.com',
+        ));
+        $this->assertEquals(1, $count);
     }
 
     public function testSettings()
