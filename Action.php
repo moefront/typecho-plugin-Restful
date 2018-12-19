@@ -307,17 +307,16 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $result = $this->db->fetchAll($select);
         foreach ($result as $key => $value) {
             // digest has two types
-            // if you use 'more', plugin will truncate from <!--more-->
             if ($showDigest === 'more') {
+                // if you use 'more', plugin will truncate from <!--more-->
                 $result[$key]['digest'] = str_replace(
                     "<!--markdown-->", "",
                     explode("<!--more-->", $result[$key]['text'])[0]
                 );
 
                 $result[$key] = $this->filter($result[$key]);
-            }
-            // if you use 'excerpt', plugin will truncate for certain number of text
-            else if ($showDigest === 'excerpt') {
+            } else if ($showDigest === 'excerpt') {
+                // if you use 'excerpt', plugin will truncate for certain number of text
                 $limit = (int) trim($this->getParams('limit', '200'));
                 $result[$key] = $this->filter($result[$key]);
                 $result[$key]['digest'] = mb_substr(
@@ -326,8 +325,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                     $limit,
                     'utf-8'
                 ) . "...";
-            }
-            else {
+            } else {
                 $result[$key] = $this->filter($result[$key]);
             }
 
