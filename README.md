@@ -38,6 +38,10 @@ chown www:www -R Restful
 | filterType  | string | category 或 tag 或 search  | 可选 |
 | filterSlug  | string | 分类名或标签名或搜索关键字 | 可选 |
 | showContent | bool   | 是否显示文章具体内容       | 可选 |
+| showDigest  | string | 指定是否显示文章摘要及显示摘要的类型 | 可选 |
+| limit       | int    | 当 showDigest 的类型为 excerpt 时，指定截断的字数 | 可选 |
+
+PS： `showDigest` 有两个可选的值，分别为 `more` 和 `excerpt`. 当选用 `more` 模式时，插件将返回文章中 `<!--more-->` 标签前的内容解析后的 HTML；选用 `excerpt` 模式时，插件将对解析后的文章过滤 HTML 标签后，返回前 `limit` 个字符。默认 `limit` 的值为 200.
 
 ### 页面列表
 
@@ -124,8 +128,12 @@ PS：默认按从新到旧 (desc) 顺序排列文章。
 
 | 参数         | 类型     | 描述                       |     |
 | ------------ | ------- | -------------------------- | --- |
-| showContent  | bool    | 是否显示文章内容            | 可选 |
 | order        | string  | 归档的排序方式 (asc / desc) | 可选 |
+| showContent  | bool    | 是否显示文章内容            | 可选 |
+| showDigest  | string | 指定是否显示文章摘要及显示摘要的类型 | 可选 |
+| limit       | int    | 当 showDigest 的类型为 excerpt 时，指定截断的字数 | 可选 |
+
+PS: `showDigest` 和 `limit` 参数的使用参见 `/api/posts` 部分。
 
 ## 其它
 
