@@ -939,6 +939,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $value['text'] = isset($value['text']) ? $value['text'] : null;
         $value['digest'] = isset($value['digest']) ? $value['digest'] : null;
 
+        $value['password'] = '';        // typecho:#94ddb69 compat
+
         if (method_exists($contentWidget, 'markdown')) {
             $value = $contentWidget->filter($value);
             $value['text'] = $contentWidget->markdown($value['text']);
