@@ -83,7 +83,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function sendCORS()
     {
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
-        $allowedHttpOrigins = explode("\n", $this->config->origin);
+        $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->origin));
 
         if (!$httpOrigin) {
             return;
@@ -428,7 +428,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $cid = $this->getParams('cid', '');
 
         $select = $this->db
-            ->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
+            ->select('title','cid', 'created', 'type', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
             ->where('password IS NULL');
 
