@@ -928,6 +928,21 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * Safely parse markdown into HTML
+     * @param string|null $content
+     * @return string
+     */
+    private function safelyParseMarkdown($content) {
+        if (is_null($content) || empty($content)) {
+            return '';
+        }
+        $contentWidget = $this->widget('Widget_Abstract_Contents');
+        return method_exists($contentWidget, 'markdown')
+            ? $contentWidget->markdown($content)
+            : MarkdownExtraExtended::defaultTransform($content);
+    }
+
+    /**
      * 过滤和补全文章数组
      *
      * @param array $value 文章详细信息数组
@@ -941,22 +956,14 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $value['password'] = '';        // typecho:#94ddb69 compat
 
-        if (method_exists($contentWidget, 'markdown')) {
-            $value = $contentWidget->filter($value);
-            $value['text'] = $contentWidget->markdown($value['text']);
-            $value['digest'] = $contentWidget->markdown($value['digest']);
-        } else {
-            // Typecho 0.9 compatibility
-            $value['type'] = isset($value['type']) ? $value['type'] : null;
-            $value = $contentWidget->filter($value);
-            $value['text'] = MarkdownExtraExtended::defaultTransform($value['text']);
-            $value['digest'] = MarkdownExtraExtended::defaultTransform($value['digest']);
+        $value['type'] = isset($value['type']) ? $value['type'] : null; // Typecho 0.9 compatibility
+        $value = $contentWidget->filter($value);
+        $value['text'] = $this->safelyParseMarkdown($value['text']);
+        $value['digest'] = $this->safelyParseMarkdown($value['text']);
 
-            if ($value['type'] === null) {
-                unset($value['type']);
-            }
+        if ($value['type'] === null) {
+            unset($value['type']);
         }
-
         if (empty(trim($value['text']))) {
             unset($value['text']);
         }
