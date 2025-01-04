@@ -220,7 +220,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $result[$value['name']] = array(
                     "name" => $value['name'],
                     "type" => $value['type'],
-                    "value" => $value[$value['type'] . '_value'],
+                    "value" => $value['str_value'],
                 );
             }
         }
