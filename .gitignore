@@ -3,3 +3,4 @@
 vendor/
 tmp
 composer.lock
+.idea

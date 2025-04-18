@@ -91,6 +91,10 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         /* CSRF token salt */
         $csrfSalt = new Typecho_Widget_Helper_Form_Element_Text('csrfSalt', null, '05faabd6637f7e30c797973a558d4372', _t('CSRF加密盐'), _t('请务必修改本参数，以防止跨站攻击。'));
         $form->addInput($csrfSalt);
+
+        /* API token */
+        $apiToken = new Typecho_Widget_Helper_Form_Element_Text('apiToken', null, '123456', _t('APITOKEN'), _t('api请求需要携带的token。'));
+        $form->addInput($apiToken);
         ?>
 <script>
 function restfulUpgrade(e) {
