@@ -883,6 +883,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $valuesString = implode(', ', $values);
                 $sql = "INSERT INTO " . $this->db->getPrefix() . "relationships (`cid`, `mid`) VALUES " . $valuesString . ";";
                 $this->db->query($sql);
+
+                $this->refreshMetas($midArray);
             }
 
             $this->throwData($res);
@@ -1101,5 +1103,29 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function checkCsrfToken($key, $token)
     {
         return hash_equals($token, $this->generateCsrfToken($key));
+    }
+
+    /**
+     * 刷新Metas数量
+     * @param array $midArray
+     * @return void
+     */
+    private function refreshMetas(array $midArray)
+    {
+        $tags = $this->db
+            ->select('*')
+            ->from('table.metas')
+            ->where('mid IN (' . implode(',', $midArray) . ')');
+        $result = $this->db->fetchAll($tags);
+        // 更新数量
+        foreach ($result as $tag) {
+            $count = $this->db->fetchObject($this->db->select(array('COUNT(cid)' => 'num'))
+                ->from('table.relationships')
+                ->where('mid = ?', $tag['mid']))->num;
+
+            $this->db->query($this->db->update('table.metas')
+                ->rows(array('count' => $count))
+                ->where('mid = ?', $tag['mid']));
+        }
     }
 }
