@@ -1,0 +1,39 @@
+name: Unit Test
+
+on:
+  push:
+    branches: [ chore/ci-* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: typecho_test_db
+          MYSQL_ROOT_PASSWORD: 123456
+        ports:
+        - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup PHP with tools
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.4'
+        tools: phpunit
+
+    - name: Install Dependencies
+      run: composer install
+
+    - name: Unit Test with PHPUnit
+      run: composer test

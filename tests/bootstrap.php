@@ -33,9 +33,4 @@ register_shutdown_function(function () use ($server) {
     $server[1]->stop();
 });
 
-// Set env
-if (getenv('CI')) {
-    putenv('MYSQL_PWD=');
-}
-
 Util::installTypecho();
