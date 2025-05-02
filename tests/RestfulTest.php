@@ -21,6 +21,10 @@ class RestfulTest extends TestCase
         self::$client = new Client(array(
             'base_uri' => 'http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT'),
             'http_errors' => false,
+
+            'headers' => array(
+                'token' => getenv('WEB_SERVER_TOKEN')
+            )
         ));
 
         self::$db = new Medoo(array(
@@ -34,7 +38,7 @@ class RestfulTest extends TestCase
 
     public function testPosts()
     {
-        $response = self::$client->get('/api/posts');
+        $response = self::$client->get('/index.php/api/posts');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -47,7 +51,7 @@ class RestfulTest extends TestCase
 
     public function testPages()
     {
-        $response = self::$client->get('/api/pages');
+        $response = self::$client->get('/index.php/api/pages');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -57,7 +61,7 @@ class RestfulTest extends TestCase
 
     public function testCategories()
     {
-        $response = self::$client->get('/api/categories');
+        $response = self::$client->get('/index.php/api/categories');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -65,7 +69,7 @@ class RestfulTest extends TestCase
 
     public function testTags()
     {
-        $response = self::$client->get('/api/tags');
+        $response = self::$client->get('/index.php/api/tags');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -73,7 +77,7 @@ class RestfulTest extends TestCase
 
     public function testPost()
     {
-        $response = self::$client->get('/api/post', array('query' => array('cid' => 1)));
+        $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -82,7 +86,7 @@ class RestfulTest extends TestCase
 
     public function testComments()
     {
-        $response = self::$client->get('/api/comments', array('query' => array('cid' => 1)));
+        $response = self::$client->get('/index.php/api/comments', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -96,7 +100,7 @@ class RestfulTest extends TestCase
     public function testComment()
     {
         // without token
-        $response = self::$client->post('/api/comment', array(
+        $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
                 'cid' => 1,
                 'text' => '233',
@@ -108,9 +112,9 @@ class RestfulTest extends TestCase
         $this->assertEquals('error', $result['status']);
 
         // with token and invalid form value
-        $response = self::$client->get('/api/post', array('query' => array('cid' => 1)));
+        $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
-        $response = self::$client->post('/api/comment', array(
+        $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
                 'cid' => 1,
                 'text' => '233',
@@ -124,9 +128,9 @@ class RestfulTest extends TestCase
         $this->assertEquals('邮箱地址不合法', $result['message']);
 
         // insert a normal user comment
-        $response = self::$client->get('/api/post', array('query' => array('cid' => 1)));
+        $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
-        $response = self::$client->post('/api/comment', array(
+        $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
                 'cid' => 1,
                 'text' => '233',
@@ -146,7 +150,7 @@ class RestfulTest extends TestCase
 
     public function testSettings()
     {
-        $response = self::$client->get('/api/settings');
+        $response = self::$client->get('/index.php/api/settings');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -158,7 +162,7 @@ class RestfulTest extends TestCase
 
     public function testUsers()
     {
-        $response = self::$client->get('/api/users?uid=1');
+        $response = self::$client->get('/index.php/api/users?uid=1');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
@@ -169,11 +173,61 @@ class RestfulTest extends TestCase
 
     public function testArchives()
     {
-        $response = self::$client->get('/api/archives?showContent=true');
+        $response = self::$client->get('/index.php/api/archives?showContent=true');
         $result = json_decode($response->getBody(), true);
 
         $this->assertEquals('success', $result['status']);
         $this->assertArrayHasKey('count', $result['data']);
         $this->assertArrayHasKey('dataSet', $result['data']);
+    }
+
+    public function testUserList()
+    {
+        $response = self::$client->get('/index.php/api/userList');
+        $result = json_decode($response->getBody(), true);
+
+        $this->assertEquals('success', $result['status']);
+        $this->assertTrue(is_array($result['data']));
+    }
+
+    public function testPostArticle()
+    {
+        $response = self::$client->post('/index.php/api/postArticle', array(
+            RequestOptions::JSON => array(
+                'title' => 'test',
+                'text' => '233',
+                'authorId' => '1',
+                'mid' => '1',
+            ),
+        ));
+        $result = json_decode($response->getBody(), true);
+        $this->assertEquals('success', $result['status']);
+        $this->assertTrue(is_numeric($result['data']));
+
+        $count = self::$db->count('typecho_contents', array(
+            'title' => 'test',
+            'text' => '233',
+            'authorId' => '1',
+        ));
+        $this->assertEquals(1, $count);
+    }
+
+    public function testAddMetas()
+    {
+        $response = self::$client->post('/index.php/api/addMetas', array(
+            RequestOptions::JSON => array(
+                'name' => '测试',
+                'type' => 'tag',
+            ),
+        ));
+        $result = json_decode($response->getBody(), true);
+        $this->assertEquals('success', $result['status']);
+        $this->assertTrue(is_numeric($result['data']));
+
+        $count = self::$db->count('typecho_metas', array(
+            'name' => '测试',
+            'type' => 'tag',
+        ));
+        $this->assertTrue(is_numeric($count));
     }
 }

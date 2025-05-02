@@ -100,7 +100,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
 
         if (strtolower($this->request->getServer('REQUEST_METHOD')) == 'options') {
-//            Typecho_Response::setStatus(204);
+            $this->response->setStatus(204);
             $this->response->setHeader('Access-Control-Allow-Headers', 'Origin, No-Cache, X-Requested-With, If-Modified-Since, Pragma, Last-Modified, Cache-Control, Expires, Content-Type');
             $this->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
             exit;
@@ -151,7 +151,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private function throwError($message = 'unknown', $status = 400)
     {
-//        Typecho_Response::setStatus($status);
+        $this->response->setStatus($status);
         $this->response->throwJson(array(
             'status' => 'error',
             'message' => $message,
@@ -202,6 +202,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('This API has been disabled.', 403);
         }
         $token = $this->request->getHeader('token');
+        if (empty($token)) {
+            $this->throwError('apiToken is empty', 403);
+        }
         if ($token != $this->config->apiToken) {
             $this->throwError('apiToken is invalid', 403);
         }
@@ -571,6 +574,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             if (!$this->getParams($key, '')) {
                 $this->throwError('missing ' . $key);
             }
+        }
+
+        if (!filter_var($this->getParams('mail'), FILTER_VALIDATE_EMAIL)) {
+            $this->throwError('邮箱地址不合法');
         }
 
         $slug = $this->getParams('slug', '');
