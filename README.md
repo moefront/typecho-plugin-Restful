@@ -1,6 +1,6 @@
 # Typecho Restful 插件
 
-[![Build Status](https://travis-ci.org/moefront/typecho-plugin-Restful.svg?branch=master)](https://travis-ci.org/moefront/typecho-plugin-Restful)
+[![Unit Test](https://github.com/moefront/typecho-plugin-Restful/actions/workflows/test.yml/badge.svg)](https://github.com/moefront/typecho-plugin-Restful/actions/workflows/test.yml)
 [![Version](https://badge.fury.io/ph/moefront%2Ftypecho-plugin-restful.svg)](https://packagist.org/packages/moefront/typecho-plugin-restful)
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 ![built by](https://img.shields.io/badge/built_by-MoeFront-ff69b4.svg)
