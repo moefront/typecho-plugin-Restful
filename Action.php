@@ -329,21 +329,22 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             if ($showDigest === 'more') {
                 // if you use 'more', plugin will truncate from <!--more-->
                 $result[$key]['digest'] = str_replace(
-                    "<!--markdown-->", "",
+                    "<!--markdown-->",
+                    "",
                     explode("<!--more-->", $result[$key]['text'])[0]
                 );
 
                 $result[$key] = $this->filter($result[$key]);
-            } else if ($showDigest === 'excerpt') {
+            } elseif ($showDigest === 'excerpt') {
                 // if you use 'excerpt', plugin will truncate for certain number of text
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $result[$key] = $this->filter($result[$key]);
                 $result[$key]['digest'] = mb_substr(
-                        htmlspecialchars_decode(strip_tags($result[$key]['text'])),
-                        0,
-                        $limit,
-                        'utf-8'
-                    ) . "...";
+                    htmlspecialchars_decode(strip_tags($result[$key]['text'])),
+                    0,
+                    $limit,
+                    'utf-8'
+                ) . "...";
             } else {
                 $result[$key] = $this->filter($result[$key]);
             }
@@ -755,20 +756,21 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             // digest related
             if ($showDigest === 'more') {
                 $post['digest'] = str_replace(
-                    "<!--markdown-->", "",
+                    "<!--markdown-->",
+                    "",
                     explode("<!--more-->", $post['text'])[0]
                 );
 
                 $post = $this->filter($post);
-            } else if ($showDigest === 'excerpt') {
+            } elseif ($showDigest === 'excerpt') {
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $post = $this->filter($post);
                 $post['digest'] = mb_substr(
-                        htmlspecialchars_decode(strip_tags($post['text'])),
-                        0,
-                        $limit,
-                        'utf-8'
-                    ) . "...";
+                    htmlspecialchars_decode(strip_tags($post['text'])),
+                    0,
+                    $limit,
+                    'utf-8'
+                ) . "...";
             } else {
                 $post = $this->filter($post);
             }

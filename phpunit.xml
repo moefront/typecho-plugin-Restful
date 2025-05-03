@@ -24,7 +24,7 @@
     <php>
         <env name="WEB_SERVER_HOST" value="127.0.0.1" />
         <env name="WEB_SERVER_PORT" value="2333" />
-        <env name="WEB_SERVER_DOCROOT" value="./tmp" />
+        <env name="WEB_SERVER_DOCROOT" value="/tmp/typecho-1.2.1" />
         <env name="WEB_SERVER_TIMEOUT" value="1000" />
         <env name="WEB_SERVER_TOKEN" value="123456" />
         <env name="FORKED_WEB_SERVER_PORT" value="6666" />

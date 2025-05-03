@@ -18,7 +18,7 @@ class Util
      *
      * @var string
      */
-    private static $tmpPath = __DIR__ . '/../tmp/';
+    private static $tmpPath = __DIR__ . '/tmp/';
 
     /**
      * Typecho根目录
@@ -36,13 +36,11 @@ class Util
     {
         $progressBar = new Manager(0, 1000);
 
-//        $url = 'https://github.com/typecho/typecho/archive/master.tar.gz';
-        $url = 'https://github.com/typecho/typecho/releases/latest/download/typecho.zip';
+        $url = 'https://github.com/typecho/typecho/archive/refs/tags/v1.2.1.tar.gz';
         $fileName = basename($url);
         $filePath = self::$tmpPath . $fileName;
 
-//        self::$typechoDir = self::$tmpPath . 'typecho-master';
-        self::$typechoDir = self::$tmpPath;
+        self::$typechoDir = self::$tmpPath . 'typecho-1.2.1';
 
         if (is_dir(self::$typechoDir)) {
             echo 'typecho already downloaded' . PHP_EOL;
@@ -53,7 +51,8 @@ class Util
 
         try {
             self::deleteDir(self::$tmpPath);
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
 
         self::mkdirs(self::$tmpPath);
 
@@ -85,6 +84,8 @@ class Util
         echo 'extracting' . PHP_EOL;
 
         $pharData = new PharData($filePath);
+        $pharData->decompress();
+        $pharData = new PharData(substr($filePath, 0, -3));
         $pharData->extractTo(self::$tmpPath);
     }
 
@@ -187,7 +188,8 @@ define("IN_PHPUNIT_SERVER", true);
         $pluginDir = self::$typechoDir . '/usr/plugins/Restful';
         try {
             self::deleteDir($pluginDir);
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+        }
         self::mkdirs($pluginDir);
         copy(__DIR__ . '/../Plugin.php', $pluginDir . '/Plugin.php');
         copy(__DIR__ . '/../Action.php', $pluginDir . '/Action.php');

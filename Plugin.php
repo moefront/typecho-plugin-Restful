@@ -124,7 +124,7 @@ function restfulUpgrade(e) {
     x.send();
 }
 </script>
-<?php
+        <?php
     }
 
     /**
@@ -135,7 +135,8 @@ function restfulUpgrade(e) {
      * @return void
      */
     public static function personalConfig(Typecho_Widget_Helper_Form $form)
-    {}
+    {
+    }
 
     /**
      * 构造评论真实IP
