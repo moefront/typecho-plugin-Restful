@@ -1,4 +1,5 @@
 <?php
+
 namespace MoeFront\RestfulTests;
 
 use GuzzleHttp\Client;
@@ -21,6 +22,7 @@ class RestfulTest extends TestCase
         self::$client = new Client(array(
             'base_uri' => 'http://' . getenv('WEB_SERVER_HOST') . ':' . getenv('WEB_SERVER_PORT'),
             'http_errors' => false,
+            'proxy' => false,
 
             'headers' => array(
                 'token' => getenv('WEB_SERVER_TOKEN')
@@ -99,7 +101,7 @@ class RestfulTest extends TestCase
 
     public function testComment()
     {
-        $this->markTestSkipped('Comment is broken.');
+//        $this->markTestSkipped('Comment is broken.');
 
         // without token
         $response = self::$client->post('/index.php/api/comment', array(
@@ -116,6 +118,9 @@ class RestfulTest extends TestCase
         // with token and invalid form value
         $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
+        $this->assertEquals('success', $result['status']);
+        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => $result['data']['permalink'])));
+        $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
                 'cid' => 1,
@@ -131,6 +136,9 @@ class RestfulTest extends TestCase
 
         // insert a normal user comment
         $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
+        $result = json_decode($response->getBody(), true);
+        $this->assertEquals('success', $result['status']);
+        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => $result['data']['permalink'])));
         $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
@@ -194,12 +202,15 @@ class RestfulTest extends TestCase
 
     public function testPostArticle()
     {
+        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => 'test888')));
+        $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/postArticle', array(
             RequestOptions::JSON => array(
-                'title' => 'test',
+                'title' => 'test888',
                 'text' => '233',
                 'authorId' => '1',
                 'mid' => '1',
+                'token' => $result['data']['csrfToken'],
             ),
         ));
         $result = json_decode($response->getBody(), true);
@@ -207,7 +218,7 @@ class RestfulTest extends TestCase
         $this->assertTrue(is_numeric($result['data']));
 
         $count = self::$db->count('typecho_contents', array(
-            'title' => 'test',
+            'title' => 'test888',
             'text' => '233',
             'authorId' => '1',
         ));
@@ -216,10 +227,13 @@ class RestfulTest extends TestCase
 
     public function testAddMetas()
     {
+        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => '测试')));
+        $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/addMetas', array(
             RequestOptions::JSON => array(
                 'name' => '测试',
                 'type' => 'tag',
+                'token' => $result['data']['csrfToken'],
             ),
         ));
         $result = json_decode($response->getBody(), true);

@@ -30,6 +30,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private $httpParams;
 
+    protected $request;
+    protected $response;
+
     public function __construct($request, $response, $params = null)
     {
         parent::__construct($request, $response, $params);
@@ -37,6 +40,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->db = Typecho_Db::get();
         $this->options = $this->widget('Widget_Options');
         $this->config = $this->options->plugin('Restful');
+        $this->request = $request;
+        $this->response = $response;
     }
 
     /**
@@ -55,7 +60,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
             preg_match('/(.*)Action$/', $methodName, $matches);
             if (isset($matches[1])) {
-                array_push($routes, array(
+                $routes[] = array(
                     'action' => $matches[0],
                     'name' => 'rest_' . $matches[1],
                     'shortName' => $matches[1],
@@ -65,7 +70,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                         '',
                         substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@'))
                     )),
-                ));
+                );
             }
         }
         return $routes;
@@ -456,7 +461,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $result = $this->db->fetchRow($select);
         if (count($result) != 0) {
             $result = $this->filter($result);
-            $result['csrfToken'] = $this->generateCsrfToken($result['permalink']);
             $this->throwData($result);
         } else {
             $this->throwError('post not exists', 404);
@@ -829,7 +833,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $contents = new Contents($this->request, $this->response);
 
         $check_key = [
-            'title', 'text', 'authorId'
+            'title', 'text', 'authorId', 'token'
         ];
         foreach ($check_key as $key) {
             if (!$this->getParams($key, '')) {
@@ -841,6 +845,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $authorId = $this->getParams('authorId', '');
         $slug = $this->getParams('slug', '');
         $mid = $this->getParams('mid', '');
+        $token = $this->getParams('token', '');
+
+        if (!$this->checkCsrfToken($title, $token)) {
+            $this->throwError('token invalid');
+        }
+
         try {
             $article = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
                 ->from('table.contents')
@@ -910,8 +920,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $name = $this->getParams('name', '');
         $type = $this->getParams('type', '');
         $slug = $this->getParams('slug', '');
+        $token = $this->getParams('token', '');
         if (empty($name) || empty($type)) {
             $this->throwError('missing name or type');
+        }
+        if (!$this->checkCsrfToken($name, $token)) {
+            $this->throwError('token invalid');
         }
         if ($type != 'category' && $type != 'tag') {
             $this->throwError('type must be category or tag');
@@ -922,6 +936,21 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             'slug' => empty($slug) ? $name : $slug,
         ]));
         $this->throwData($res);
+    }
+
+    /**
+     * 获取 CSRF Token
+     */
+    public function getCsrfTokenAction()
+    {
+        $this->lockMethod('get');
+        $this->checkState('getCsrfToken');
+        $key = $this->getParams('key');
+        if (empty($key)) {
+            $this->throwError('missing key');
+        }
+        $token = $this->generateCsrfToken($key);
+        $this->throwData(['csrfToken' => $token]);
     }
 
     /**

@@ -36,11 +36,13 @@ class Util
     {
         $progressBar = new Manager(0, 1000);
 
-        $url = 'https://github.com/typecho/typecho/archive/master.tar.gz';
+//        $url = 'https://github.com/typecho/typecho/archive/master.tar.gz';
+        $url = 'https://github.com/typecho/typecho/releases/latest/download/typecho.zip';
         $fileName = basename($url);
         $filePath = self::$tmpPath . $fileName;
 
-        self::$typechoDir = self::$tmpPath . 'typecho-master';
+//        self::$typechoDir = self::$tmpPath . 'typecho-master';
+        self::$typechoDir = self::$tmpPath . 'typecho';
 
         if (is_dir(self::$typechoDir)) {
             echo 'typecho already downloaded' . PHP_EOL;
@@ -71,6 +73,7 @@ class Util
         $request = new Request('get', $url);
         $promise = $client->sendAsync($request, array(
             'sink' => $filePath,
+            'verify' => false,
         ));
         $promise->then(function (Response $resp) {
             echo 'download completed' . PHP_EOL;
@@ -82,8 +85,6 @@ class Util
         echo 'extracting' . PHP_EOL;
 
         $pharData = new PharData($filePath);
-        $pharData->decompress();
-        $pharData = new PharData(substr($filePath, 0, -3));
         $pharData->extractTo(self::$tmpPath);
     }
 
