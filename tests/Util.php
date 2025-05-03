@@ -42,7 +42,7 @@ class Util
         $filePath = self::$tmpPath . $fileName;
 
 //        self::$typechoDir = self::$tmpPath . 'typecho-master';
-        self::$typechoDir = self::$tmpPath . 'typecho';
+        self::$typechoDir = self::$tmpPath;
 
         if (is_dir(self::$typechoDir)) {
             echo 'typecho already downloaded' . PHP_EOL;
