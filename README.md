@@ -11,10 +11,6 @@
 
 ## 食用方法
 
-发表评论 permalink
-发表文章 title
-新增分类
-
 ### 常规
 
 下载插件并解压，将解压后的目录重命名为 `Restful` (区分大小写)，然后到后台插件管理页面启用并设置即可。
@@ -97,23 +93,23 @@ PS: 如果带上 Cookie 请求，会显示当前 Cookie 记住的用户所发布
 
 `POST /api/comment`
 
-| 参数       | 类型     | 描述                           |     |
-|----------|--------|------------------------------|-----|
-| cid      | int    | 文章 ID                        | 二选一 |
-| slug     | string | 文章别名                         | 二选一 |
-| parent   | int    | 父级评论 ID                      | 可选  |
-| text     | string | 评论内容                         | 必须  |
-| mail     | string | 邮箱                           | 必须  |
-| url      | string | URL                          | 可选  |
-| token    | string | 使用文章详情 permalink生成的csrfToken | 必须  |
-| author   | string | 作者                           | 必须  |
-| authorId | int    | 作者Id                         | 可选  |
-| ownerId  | int    | 所有者Id                        | 可选  |
+| 参数       | 类型     | 描述             |     |
+|----------|--------|----------------|-----|
+| cid      | int    | 文章 ID          | 二选一 |
+| slug     | string | 文章别名           | 二选一 |
+| parent   | int    | 父级评论 ID        | 可选  |
+| text     | string | 评论内容           | 必须  |
+| mail     | string | 邮箱             | 必须  |
+| url      | string | URL            | 可选  |
+| token    | string | 文章详情的csrfToken | 必须  |
+| author   | string | 作者             | 必须  |
+| authorId | int    | 作者Id           | 可选  |
+| ownerId  | int    | 所有者Id          | 可选  |
 
 PS：此处`Content-Type`为`application/json`, 也就是说你应当以 JSON 格式提交数据。
 
-PS2: uid 和 authCode 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上
-Cookie 请求此 API 则不再需要带上 `uid` 和 `authCode` 参数。请求时需要带上合法的 User-Agent.
+PS2: uid 可以在 Cookie 中找到（形如 `hash__typecho_uid` 和 `hash__typecho_authCode` 的内容）。如果直接带上
+Cookie 请求此 API 则不再需要带上 `authorId` 参数。请求时需要带上合法的 User-Agent.
 
 ### 设置项
 
@@ -153,14 +149,13 @@ PS: `showDigest` 和 `limit` 参数的使用参见 `/api/posts` 部分。
 
 PS: 根据标题或别名新增/更新文章。
 
-| 参数       | 类型     | 描述                  |    |
-|----------|--------|---------------------|----|
-| title    | string | 标题                  | 必须 |
-| text     | string | 内容                  | 必须 |
-| authorId | int    | 作者id                | 必须 |
-| token    | string | 使用title生成的csrfToken | 必须 |
-| slug     | string | 别名（优先根据别名更新文章）      | 可选 |
-| mid      | string | 分类/标签id(多个用逗号分隔)    | 可选 |
+| 参数       | 类型     | 描述               |    |
+|----------|--------|------------------|----|
+| title    | string | 标题               | 必须 |
+| text     | string | 内容               | 必须 |
+| authorId | int    | 作者id             | 必须 |
+| slug     | string | 别名（优先根据别名更新文章）   | 可选 |
+| mid      | string | 分类/标签id(多个用逗号分隔) | 可选 |
 
 PS: mid是因为typecho分类跟标签是同一个表。
 
@@ -168,20 +163,11 @@ PS: mid是因为typecho分类跟标签是同一个表。
 
 `GET /api/addMetas`
 
-| 参数    | 类型     | 描述                 |    |
-|-------|--------|--------------------|----|
-| name  | string | 名称                 | 必须 |
-| type  | string | 类型（category/tag）   | 必须 |
-| token | string | 使用name生成的csrfToken | 必须 |
-| slug  | string | 别名                 | 可选 |
-
-### 获取 CSRF Token
-
-`GET /api/getCsrfTokenAction`
-
-| 参数  | 类型     | 描述       |    |
-|-----|--------|----------|----|
-| key | string | 校验需要的字段值 | 必须 |
+| 参数   | 类型     | 描述               |    |
+|------|--------|------------------|----|
+| name | string | 名称               | 必须 |
+| type | string | 类型（category/tag） | 必须 |
+| slug | string | 别名               | 可选 |
 
 ## 其它
 

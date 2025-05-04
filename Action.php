@@ -94,6 +94,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function sendCORS()
     {
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
+        $this->response->setHeader('Access-Control-Allow-Credentials', 'true');
         $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->origin));
 
         if (!$httpOrigin) {
@@ -207,10 +208,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('This API has been disabled.', 403);
         }
         $token = $this->request->getHeader('token');
-        if (empty($token)) {
-            $this->throwError('apiToken is empty', 403);
-        }
-        if ($token != $this->config->apiToken) {
+        if (!empty($token) && $token != $this->config->apiToken) {
             $this->throwError('apiToken is invalid', 403);
         }
     }
@@ -340,11 +338,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $result[$key] = $this->filter($result[$key]);
                 $result[$key]['digest'] = mb_substr(
-                    htmlspecialchars_decode(strip_tags($result[$key]['text'])),
-                    0,
-                    $limit,
-                    'utf-8'
-                ) . "...";
+                        htmlspecialchars_decode(strip_tags($result[$key]['text'])),
+                        0,
+                        $limit,
+                        'utf-8'
+                    ) . "...";
             } else {
                 $result[$key] = $this->filter($result[$key]);
             }
@@ -462,6 +460,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $result = $this->db->fetchRow($select);
         if (count($result) != 0) {
             $result = $this->filter($result);
+            $result['csrfToken'] = $this->generateCsrfToken($result['permalink']);
             $this->throwData($result);
         } else {
             $this->throwError('post not exists', 404);
@@ -616,20 +615,27 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             'cid' => $result['cid'],
             'author' => $this->getParams('author', ''),
         );
+
         $parent = $this->getParams('parent', '');
+        $authorId = $this->getParams('authorId', '');
+        $ownerId = $this->getParams('ownerId', '');
+        $url = $this->getParams('url', '');
+
+        $uid = Typecho_Cookie::get('__typecho_uid'); // 登录的话忽略传值
+        if (!empty($uid)) {
+            $authorId = $uid;
+        }
+
         if (is_numeric($parent)) {
             $postData['parent'] = $parent;
         }
-        $authorId = $this->getParams('authorId', '');
         if (is_numeric($authorId)) {
             $postData['authorId'] = $authorId;
         }
-        $ownerId = $this->getParams('ownerId', '');
         if (is_numeric($ownerId)) {
             $postData['ownerId'] = $ownerId;
         }
-        $url = $this->getParams('url', '');
-        if (is_numeric($url)) {
+        if (is_string($url)) {
             $postData['url'] = $url;
         }
         $comments->insert($postData);
@@ -766,11 +772,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $post = $this->filter($post);
                 $post['digest'] = mb_substr(
-                    htmlspecialchars_decode(strip_tags($post['text'])),
-                    0,
-                    $limit,
-                    'utf-8'
-                ) . "...";
+                        htmlspecialchars_decode(strip_tags($post['text'])),
+                        0,
+                        $limit,
+                        'utf-8'
+                    ) . "...";
             } else {
                 $post = $this->filter($post);
             }
@@ -832,10 +838,14 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->lockMethod('post');
         $this->checkState('postArticle');
 
+        if ($this->config->validateLogin == 1 && !$this->widget('Widget_User')->hasLogin()) {
+            $this->throwError('User must be logged in', 401);
+        }
+
         $contents = new Contents($this->request, $this->response);
 
         $check_key = [
-            'title', 'text', 'authorId', 'token'
+            'title', 'text', 'authorId'
         ];
         foreach ($check_key as $key) {
             if (!$this->getParams($key, '')) {
@@ -847,11 +857,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $authorId = $this->getParams('authorId', '');
         $slug = $this->getParams('slug', '');
         $mid = $this->getParams('mid', '');
-        $token = $this->getParams('token', '');
-
-        if (!$this->checkCsrfToken($title, $token)) {
-            $this->throwError('token invalid');
-        }
 
         try {
             $article = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
@@ -919,15 +924,14 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $this->lockMethod('post');
         $this->checkState('addMetas');
+        if ($this->config->validateLogin == 1 && !$this->widget('Widget_User')->hasLogin()) {
+            $this->throwError('User must be logged in', 401);
+        }
         $name = $this->getParams('name', '');
         $type = $this->getParams('type', '');
         $slug = $this->getParams('slug', '');
-        $token = $this->getParams('token', '');
         if (empty($name) || empty($type)) {
             $this->throwError('missing name or type');
-        }
-        if (!$this->checkCsrfToken($name, $token)) {
-            $this->throwError('token invalid');
         }
         if ($type != 'category' && $type != 'tag') {
             $this->throwError('type must be category or tag');
@@ -938,21 +942,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             'slug' => empty($slug) ? $name : $slug,
         ]));
         $this->throwData($res);
-    }
-
-    /**
-     * 获取 CSRF Token
-     */
-    public function getCsrfTokenAction()
-    {
-        $this->lockMethod('get');
-        $this->checkState('getCsrfToken');
-        $key = $this->getParams('key');
-        if (empty($key)) {
-            $this->throwError('missing key');
-        }
-        $token = $this->generateCsrfToken($key);
-        $this->throwData(['csrfToken' => $token]);
     }
 
     /**

@@ -118,9 +118,6 @@ class RestfulTest extends TestCase
         // with token and invalid form value
         $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
         $result = json_decode($response->getBody(), true);
-        $this->assertEquals('success', $result['status']);
-        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => $result['data']['permalink'])));
-        $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
                 'cid' => 1,
@@ -136,9 +133,6 @@ class RestfulTest extends TestCase
 
         // insert a normal user comment
         $response = self::$client->get('/index.php/api/post', array('query' => array('cid' => 1)));
-        $result = json_decode($response->getBody(), true);
-        $this->assertEquals('success', $result['status']);
-        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => $result['data']['permalink'])));
         $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/comment', array(
             RequestOptions::JSON => array(
@@ -202,15 +196,12 @@ class RestfulTest extends TestCase
 
     public function testPostArticle()
     {
-        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => 'test888')));
-        $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/postArticle', array(
             RequestOptions::JSON => array(
                 'title' => 'test888',
                 'text' => '233',
                 'authorId' => '1',
                 'mid' => '1',
-                'token' => $result['data']['csrfToken'],
             ),
         ));
         $result = json_decode($response->getBody(), true);
@@ -227,13 +218,10 @@ class RestfulTest extends TestCase
 
     public function testAddMetas()
     {
-        $response = self::$client->get('/index.php/api/getCsrfToken', array('query' => array('key' => '测试')));
-        $result = json_decode($response->getBody(), true);
         $response = self::$client->post('/index.php/api/addMetas', array(
             RequestOptions::JSON => array(
                 'name' => '测试',
                 'type' => 'tag',
-                'token' => $result['data']['csrfToken'],
             ),
         ));
         $result = json_decode($response->getBody(), true);

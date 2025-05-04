@@ -93,8 +93,15 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         $form->addInput($csrfSalt);
 
         /* API token */
-        $apiToken = new Typecho_Widget_Helper_Form_Element_Text('apiToken', null, '123456', _t('APITOKEN'), _t('api请求需要携带的token。'));
+        $apiToken = new Typecho_Widget_Helper_Form_Element_Text('apiToken', null, '123456', _t('APITOKEN'), _t('api请求需要携带的token，设置为空就不校验。'));
         $form->addInput($apiToken);
+
+        /* 高敏接口是否校验登录用户 */
+        $validateLogin = new Typecho_Widget_Helper_Form_Element_Radio('validateLogin', array(
+            0 => _t('否'),
+            1 => _t('是'),
+        ), 0, _t('高敏接口是否校验登录'), _t('开启后，高敏接口需要携带Cookie才能访问'));
+        $form->addInput($validateLogin);
         ?>
 <script>
 function restfulUpgrade(e) {
