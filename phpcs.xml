@@ -21,4 +21,6 @@
     <file>Plugin.php</file>
     <file>Action.php</file>
     <file>tests</file>
+
+    <exclude-pattern>tests/tmp/*</exclude-pattern>
 </ruleset>

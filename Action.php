@@ -1,4 +1,9 @@
 <?php
+
+use Widget\Base\Comments;
+use Widget\Base\Contents;
+use Widget\Base\Users;
+
 if (!defined('__TYPECHO_ROOT_DIR__')) {
     exit;
 }
@@ -25,6 +30,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private $httpParams;
 
+    protected $request;
+    protected $response;
+
     public function __construct($request, $response, $params = null)
     {
         parent::__construct($request, $response, $params);
@@ -32,6 +40,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->db = Typecho_Db::get();
         $this->options = $this->widget('Widget_Options');
         $this->config = $this->options->plugin('Restful');
+        $this->request = $request;
+        $this->response = $response;
     }
 
     /**
@@ -50,7 +60,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
             preg_match('/(.*)Action$/', $methodName, $matches);
             if (isset($matches[1])) {
-                array_push($routes, array(
+                $routes[] = array(
                     'action' => $matches[0],
                     'name' => 'rest_' . $matches[1],
                     'shortName' => $matches[1],
@@ -60,7 +70,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                         '',
                         substr($reflectMethod->getDocComment(), 0, strpos($reflectMethod->getDocComment(), '@'))
                     )),
-                ));
+                );
             }
         }
         return $routes;
@@ -73,7 +83,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     public function action()
-    {}
+    {
+    }
 
     /**
      * 发送跨域 HEADER
@@ -83,6 +94,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function sendCORS()
     {
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
+        $this->response->setHeader('Access-Control-Allow-Credentials', 'true');
         $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->origin));
 
         if (!$httpOrigin) {
@@ -94,7 +106,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
 
         if (strtolower($this->request->getServer('REQUEST_METHOD')) == 'options') {
-            Typecho_Response::setStatus(204);
+            $this->response->setStatus(204);
             $this->response->setHeader('Access-Control-Allow-Headers', 'Origin, No-Cache, X-Requested-With, If-Modified-Since, Pragma, Last-Modified, Cache-Control, Expires, Content-Type');
             $this->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
             exit;
@@ -145,7 +157,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private function throwError($message = 'unknown', $status = 400)
     {
-        Typecho_Response::setStatus($status);
+        $this->response->setStatus($status);
         $this->response->throwJson(array(
             'status' => 'error',
             'message' => $message,
@@ -177,6 +189,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function lockMethod($method)
     {
         $method = strtolower($method);
+
         if (strtolower($this->request->getServer('REQUEST_METHOD')) != $method) {
             $this->throwError('method not allowed', 405);
         }
@@ -193,6 +206,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $state = $this->config->$route;
         if (!$state) {
             $this->throwError('This API has been disabled.', 403);
+        }
+        $token = $this->request->getHeader('token');
+        if (!empty($token) && $token != $this->config->apiToken) {
+            $this->throwError('apiToken is invalid', 403);
         }
     }
 
@@ -270,8 +287,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
                 if (count($cids) == 0) {
                     $this->throwData(array(
-                        'page' => (int) $page,
-                        'pageSize' => (int) $pageSize,
+                        'page' => (int)$page,
+                        'pageSize' => (int)$pageSize,
                         'pages' => 0,
                         'count' => 0,
                         'dataSet' => array(),
@@ -310,21 +327,22 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             if ($showDigest === 'more') {
                 // if you use 'more', plugin will truncate from <!--more-->
                 $result[$key]['digest'] = str_replace(
-                    "<!--markdown-->", "",
+                    "<!--markdown-->",
+                    "",
                     explode("<!--more-->", $result[$key]['text'])[0]
                 );
 
                 $result[$key] = $this->filter($result[$key]);
-            } else if ($showDigest === 'excerpt') {
+            } elseif ($showDigest === 'excerpt') {
                 // if you use 'excerpt', plugin will truncate for certain number of text
-                $limit = (int) trim($this->getParams('limit', '200'));
+                $limit = (int)trim($this->getParams('limit', '200'));
                 $result[$key] = $this->filter($result[$key]);
                 $result[$key]['digest'] = mb_substr(
-                    htmlspecialchars_decode(strip_tags($result[$key]['text'])),
-                    0,
-                    $limit,
-                    'utf-8'
-                ) . "...";
+                        htmlspecialchars_decode(strip_tags($result[$key]['text'])),
+                        0,
+                        $limit,
+                        'utf-8'
+                    ) . "...";
             } else {
                 $result[$key] = $this->filter($result[$key]);
             }
@@ -336,8 +354,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
 
         $this->throwData(array(
-            'page' => (int) $page,
-            'pageSize' => (int) $pageSize,
+            'page' => (int)$page,
+            'pageSize' => (int)$pageSize,
             'pages' => ceil($count / $pageSize),
             'count' => $count,
             'dataSet' => $result,
@@ -403,15 +421,16 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->lockMethod('get');
         $this->checkState('tags');
 
-        $this->widget('Widget_Metas_Tag_Cloud')->to($tags);
-
-        if ($tags->have()) {
-            while ($tags->next()) {
-                $this->throwData($tags->stack);
-            }
+        $tags = $this->db
+            ->select('mid', 'name', 'slug', 'description', 'count', 'order', 'parent')
+            ->from('table.metas')
+            ->where("type = 'tag'");
+        $result = $this->db->fetchAll($tags);
+        if (count($result) != 0) {
+            $this->throwData($result);
+        } else {
+            $this->throwError('no tag', 404);
         }
-
-        $this->throwError('no tag', 404);
     }
 
     /**
@@ -428,7 +447,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $cid = $this->getParams('cid', '');
 
         $select = $this->db
-            ->select('title','cid', 'created', 'type', 'slug', 'commentsNum', 'text')
+            ->select('title', 'cid', 'created', 'type', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
             ->where('password IS NULL');
 
@@ -533,8 +552,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
 
         $this->throwData(array(
-            'page' => (int) $page,
-            'pageSize' => (int) $pageSize,
+            'page' => (int)$page,
+            'pageSize' => (int)$pageSize,
             'pages' => ceil($count / $pageSize),
             'count' => $count,
             'dataSet' => $finalResult,
@@ -551,18 +570,23 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $this->lockMethod('post');
         $this->checkState('comment');
 
+        $comments = new Comments($this->request, $this->response);
+        $check_key = [
+            'text', 'mail', 'author', 'token'
+        ];
+        foreach ($check_key as $key) {
+            if (!$this->getParams($key, '')) {
+                $this->throwError('missing ' . $key);
+            }
+        }
+
+        if (!filter_var($this->getParams('mail'), FILTER_VALIDATE_EMAIL)) {
+            $this->throwError('邮箱地址不合法');
+        }
+
         $slug = $this->getParams('slug', '');
         $cid = $this->getParams('cid', '');
         $token = $this->getParams('token', '');
-
-        // administrator
-        $uid = $this->getParams('uid', null);
-        $authCode = $this->getParams('authCode', null);
-        $cookie = Typecho_Cookie::get('__typecho_uid');
-        if (!empty($cookie)) {
-            $uid = $cookie;
-            $authCode = Typecho_Cookie::get('__typecho_authCode');
-        }
 
         $select = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
             ->from('table.contents')
@@ -585,77 +609,41 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('token invalid');
         }
 
-        $commentUrl = Typecho_Router::url(
-            'feedback',
-            array('type' => 'comment', 'permalink' => $result['pathinfo']),
-            $this->options->index
-        );
-        if (defined('IN_PHPUNIT_SERVER')) {
-            $commentUrl = str_replace(':' . WEB_SERVER_PORT, ':' . FORKED_WEB_SERVER_PORT, $commentUrl);
-        }
-
-        $postData = empty($authCode) ? array(
+        $postData = array(
             'text' => $this->getParams('text', ''),
-            'author' => $this->getParams('author', ''),
             'mail' => $this->getParams('mail', ''),
-            'url' => $this->getParams('url', ''),
-        ) : array(
-            'text' => $this->getParams('text'),
+            'cid' => $result['cid'],
+            'author' => $this->getParams('author', ''),
         );
-
-        // Typecho 0.9- has no anti-spam security
-        if (file_exists(__TYPECHO_ROOT_DIR__ . '/var/Widget/Security.php')) {
-            $postData['_'] = $this->widget('Widget_Security')->getToken($result['permalink']);
-        }
 
         $parent = $this->getParams('parent', '');
+        $authorId = $this->getParams('authorId', '');
+        $ownerId = $this->getParams('ownerId', '');
+        $url = $this->getParams('url', '');
+
+        $uid = Typecho_Cookie::get('__typecho_uid'); // 登录的话忽略传值
+        if (!empty($uid)) {
+            $authorId = $uid;
+        }
+
         if (is_numeric($parent)) {
             $postData['parent'] = $parent;
         }
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $commentUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'X-TYPECHO-RESTFUL-IP: ' . $this->request->getIp(),
-        ));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_USERAGENT, $this->request->getAgent());
-        curl_setopt($ch, CURLOPT_REFERER, $result['permalink']);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // no verify ssl
-
-        if (!empty($authCode)) {
-            $cookiePrefix = Typecho_Cookie::getPrefix();
-            $cookieText = $cookiePrefix . '__typecho_uid=' . $uid . '; ' . $cookiePrefix . '__typecho_authCode=' . $authCode . ';';
-            curl_setopt($ch, CURLOPT_COOKIE, $cookieText);
+        if (is_numeric($authorId)) {
+            $postData['authorId'] = $authorId;
         }
-
-        $data = curl_exec($ch);
-
-        if (curl_error($ch)) {
-            $this->throwError('comment failed');
+        if (is_numeric($ownerId)) {
+            $postData['ownerId'] = $ownerId;
         }
-
-        curl_close($ch);
-
-        preg_match('!(<title[^>]*>)(.*)(</title>)!i', $data, $matches);
-        if (isset($matches[2]) && $matches[2] == 'Error') {
-            preg_match('/<div class=\"container\">(.*?)<\/div>/s', $data, $matches);
-            if (isset($matches[1])) {
-                $this->throwError(trim($matches[1]));
-            }
+        if (is_string($url)) {
+            $postData['url'] = $url;
         }
-
-        $query = $this->db->select('coid', 'status')
+        $comments->insert($postData);
+        $query = $this->db->select()
             ->from('table.comments')
-            ->where('text = ?', $text)
+            ->where('author = ?', $this->getParams('author', ''))
             ->order('created', Typecho_Db::SORT_DESC);
         $res = $this->db->fetchRow($query);
-
         $this->throwData($res);
     }
 
@@ -705,6 +693,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $uid = $this->getParams('uid', '');
         $name = $this->getParams('name', '');
+        if (empty($uid) && empty($name)) {
+            $this->throwError('uid or name is required');
+        }
 
         $select = $this->db->select('uid', 'mail', 'url', 'screenName')
             ->from('table.users');
@@ -771,23 +762,22 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             // digest related
             if ($showDigest === 'more') {
                 $post['digest'] = str_replace(
-                    "<!--markdown-->", "",
+                    "<!--markdown-->",
+                    "",
                     explode("<!--more-->", $post['text'])[0]
                 );
 
                 $post = $this->filter($post);
-            }
-            else if ($showDigest === 'excerpt') {
-                $limit = (int) trim($this->getParams('limit', '200'));
+            } elseif ($showDigest === 'excerpt') {
+                $limit = (int)trim($this->getParams('limit', '200'));
                 $post = $this->filter($post);
                 $post['digest'] = mb_substr(
-                    htmlspecialchars_decode(strip_tags($post['text'])),
-                    0,
-                    $limit,
-                    'utf-8'
-                ) . "...";
-            }
-            else {
+                        htmlspecialchars_decode(strip_tags($post['text'])),
+                        0,
+                        $limit,
+                        'utf-8'
+                    ) . "...";
+            } else {
                 $post = $this->filter($post);
             }
 
@@ -800,8 +790,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $month = date('m', $date);
             $archives[$year] = isset($archives[$year]) ? $archives[$year] : array();
             $archives[$year][$month] = isset($archives[$year][$month])
-            ? $archives[$year][$month]
-            : array();
+                ? $archives[$year][$month]
+                : array();
             array_push($archives[$year][$month], $post);
         }
 
@@ -822,6 +812,136 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             "count" => count($posts),
             "dataSet" => $archives,
         ));
+    }
+
+    /**
+     * 获取用户列表
+     *
+     * @return void
+     */
+    public function userListAction()
+    {
+        $this->lockMethod('get');
+        $this->checkState('userList');
+
+        $select = $this->db->select('uid', 'mail', 'url', 'screenName')
+            ->from('table.users');
+        $result = $this->db->fetchAll($select);
+        $this->throwData($result);
+    }
+
+    /**
+     * 发表文章
+     */
+    public function postArticleAction()
+    {
+        $this->lockMethod('post');
+        $this->checkState('postArticle');
+
+        if ($this->config->validateLogin == 1 && !$this->widget('Widget_User')->hasLogin()) {
+            $this->throwError('User must be logged in', 401);
+        }
+
+        $contents = new Contents($this->request, $this->response);
+
+        $check_key = [
+            'title', 'text', 'authorId'
+        ];
+        foreach ($check_key as $key) {
+            if (!$this->getParams($key, '')) {
+                $this->throwError('missing ' . $key);
+            }
+        }
+        $title = $this->getParams('title', '');
+        $text = $this->getParams('text', '');
+        $authorId = $this->getParams('authorId', '');
+        $slug = $this->getParams('slug', '');
+        $mid = $this->getParams('mid', '');
+
+        try {
+            $article = $this->db->select('cid', 'created', 'type', 'slug', 'commentsNum', 'text')
+                ->from('table.contents')
+                ->where('authorId = ?', $authorId);
+            if (!empty($slug)) {
+                $article->where('slug = ?', $slug);
+            } else {
+                $article->where('title = ?', $title);
+            }
+            $articleData = $this->db->fetchRow($article);
+
+            $postData = [
+                'title' => $title,
+                'text' => $text,
+                'authorId' => $authorId,
+                'slug' => $slug,
+            ];
+            $type = 'add';
+            if (!empty($articleData)) {
+                // 更新
+                $postData['modified'] = $this->options->time;
+                $res = $this->db->query($this->db->sql()->where('cid = ?', $articleData['cid'])->update('table.contents')->rows($postData));
+                $cid = $articleData['cid'];
+                $type = 'update';
+            } else {
+                // 新增
+                $res = $cid = $contents->insert($postData);
+            }
+            // 分类/标签
+            if (!empty($mid)) {
+                if ($type == 'update') {
+                    $metas = $this->db->fetchAll($this->db->select('mid')->from('table.metas'));
+                    $sql = $this->db->sql()
+                        ->delete('table.relationships')
+                        ->where('cid = ?', $cid);
+                    if (!empty($metas)) {
+                        $sql = $sql->where('mid IN (' . implode(',', array_column($metas, 'mid')) . ')');
+                    }
+                    $this->db->query($sql);
+                }
+
+                $midArray = explode(',', $mid);
+                $values = [];
+                foreach ($midArray as $mid) {
+                    $values[] = '(' . $cid . ', ' . $mid . ')';
+                }
+                $valuesString = implode(', ', $values);
+                $sql = "INSERT INTO " . $this->db->getPrefix() . "relationships (`cid`, `mid`) VALUES " . $valuesString . ";";
+                $this->db->query($sql);
+
+                $this->refreshMetas($midArray);
+            }
+
+            $this->throwData($res);
+        } catch (\Typecho\Db\Exception $e) {
+            $this->throwError($e->getMessage());
+        }
+    }
+
+    /**
+     * 新增标签/分类
+     */
+    public function addMetasAction()
+    {
+        $this->lockMethod('post');
+        $this->checkState('addMetas');
+        if ($this->config->validateLogin == 1 && !$this->widget('Widget_User')->hasLogin()) {
+            $this->throwError('User must be logged in', 401);
+        }
+        $name = $this->getParams('name', '');
+        $type = $this->getParams('type', '');
+        $slug = $this->getParams('slug', '');
+        if (empty($name) || empty($type)) {
+            $this->throwError('missing name or type');
+        }
+        if ($type != 'category' && $type != 'tag') {
+            $this->throwError('type must be category or tag');
+        }
+        $res = $this->db->query($this->db->insert('table.metas')->rows([
+            'name' => $name,
+            'type' => $type,
+            'slug' => empty($slug) ? $name : $slug,
+        ]));
+        $this->throwData($res);
     }
 
     /**
@@ -873,7 +993,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     /**
      * 构造文章评论关系树
      *
-     * @param array $raw      评论的集合
+     * @param array $raw 评论的集合
      * @return array          返回构造后的评论关系数组
      */
     private function buildNodes($comments)
@@ -886,7 +1006,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $comments[$index]['mailHash'] = md5($comment['mail']);
             unset($comments[$index]['mail']); // avoid exposing users' email to public
 
-            $parent = (int) $comment['parent'];
+            $parent = (int)$comment['parent'];
             if ($parent !== 0) {
                 if (!isset($childMap[$parent])) {
                     $childMap[$parent] = array();
@@ -905,8 +1025,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      * 通过递归构建评论父子关系
      *
      * @param array $comments 评论集合
-     * @param array $parents  父评论的 key 集合
-     * @param array $map      子评论与父评论的映射关系
+     * @param array $parents 父评论的 key 集合
+     * @param array $map 子评论与父评论的映射关系
      * @return array          返回处理后的结果集合
      */
     private function recursion($comments, $parents, $map)
@@ -915,7 +1035,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         foreach ($parents as $parent) {
             $item = &$comments[$parent];
-            $coid = (int) $item['coid'];
+            $coid = (int)$item['coid'];
             if (isset($map[$coid])) {
                 $item['children'] = $this->recursion($comments, $map[$coid], $map);
             } else {
@@ -932,7 +1052,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      * @param string|null $content
      * @return string
      */
-    private function safelyParseMarkdown($content) {
+    private function safelyParseMarkdown($content)
+    {
         if (is_null($content) || empty($content)) {
             return '';
         }
@@ -1009,5 +1130,29 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     private function checkCsrfToken($key, $token)
     {
         return hash_equals($token, $this->generateCsrfToken($key));
+    }
+
+    /**
+     * 刷新Metas数量
+     * @param array $midArray
+     * @return void
+     */
+    private function refreshMetas(array $midArray)
+    {
+        $tags = $this->db
+            ->select('*')
+            ->from('table.metas')
+            ->where('mid IN (' . implode(',', $midArray) . ')');
+        $result = $this->db->fetchAll($tags);
+        // 更新数量
+        foreach ($result as $tag) {
+            $count = $this->db->fetchObject($this->db->select(array('COUNT(cid)' => 'num'))
+                ->from('table.relationships')
+                ->where('mid = ?', $tag['mid']))->num;
+
+            $this->db->query($this->db->update('table.metas')
+                ->rows(array('count' => $count))
+                ->where('mid = ?', $tag['mid']));
+        }
     }
 }

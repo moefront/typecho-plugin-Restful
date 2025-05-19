@@ -91,6 +91,17 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         /* CSRF token salt */
         $csrfSalt = new Typecho_Widget_Helper_Form_Element_Text('csrfSalt', null, '05faabd6637f7e30c797973a558d4372', _t('CSRF加密盐'), _t('请务必修改本参数，以防止跨站攻击。'));
         $form->addInput($csrfSalt);
+
+        /* API token */
+        $apiToken = new Typecho_Widget_Helper_Form_Element_Text('apiToken', null, '123456', _t('APITOKEN'), _t('api请求需要携带的token，设置为空就不校验。'));
+        $form->addInput($apiToken);
+
+        /* 高敏接口是否校验登录用户 */
+        $validateLogin = new Typecho_Widget_Helper_Form_Element_Radio('validateLogin', array(
+            0 => _t('否'),
+            1 => _t('是'),
+        ), 0, _t('高敏接口是否校验登录'), _t('开启后，高敏接口需要携带Cookie才能访问'));
+        $form->addInput($validateLogin);
         ?>
 <script>
 function restfulUpgrade(e) {
@@ -120,7 +131,7 @@ function restfulUpgrade(e) {
     x.send();
 }
 </script>
-<?php
+        <?php
     }
 
     /**
@@ -131,7 +142,8 @@ function restfulUpgrade(e) {
      * @return void
      */
     public static function personalConfig(Typecho_Widget_Helper_Form $form)
-    {}
+    {
+    }
 
     /**
      * 构造评论真实IP
