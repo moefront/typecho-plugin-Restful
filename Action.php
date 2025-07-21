@@ -1,27 +1,41 @@
 <?php
 
+namespace TypechoPlugin\Restful;
+
+use ReflectionClass;
+use ReflectionMethod;
+use Typecho\Common;
+use Typecho\Config;
+use Typecho\Cookie;
+use Typecho\Db;
+use Typecho\Request as TypechoRequest;
+use Typecho\Router;
+use Typecho\Widget\Request;
+use Utils\Markdown;
+use Widget\ActionInterface;
 use Widget\Base\Comments;
 use Widget\Base\Contents;
-use Widget\Base\Users;
+use Widget\Base\Metas;
+use Widget\Options;
 
 if (!defined('__TYPECHO_ROOT_DIR__')) {
     exit;
 }
 
-class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
+class Action extends Request implements ActionInterface
 {
     /**
-     * @var Typecho_Config
+     * @var Config
      */
     private $config;
 
     /**
-     * @var Typecho_Db
+     * @var Db
      */
     private $db;
 
     /**
-     * @var Widget_Options
+     * @var Options
      */
     private $options;
 
@@ -30,15 +44,16 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      */
     private $httpParams;
 
-    protected $request;
-    protected $response;
+    protected \Typecho\Widget\Request $request;
+    protected \Typecho\Widget\Response $response;
 
     public function __construct($request, $response, $params = null)
     {
-        parent::__construct($request, $response, $params);
+        $typecho_request = TypechoRequest::getInstance();
+        parent::__construct($typecho_request, $params);
 
-        $this->db = Typecho_Db::get();
-        $this->options = $this->widget('Widget_Options');
+        $this->db = Db::get();
+        $this->options = Options::alloc();
         $this->config = $this->options->plugin('Restful');
         $this->request = $request;
         $this->response = $response;
@@ -80,6 +95,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $this->sendCORS();
         $this->parseRequest();
+
+        // 1.3不会调用、手动调用方法
+        $url = $this->request->getPathInfo();
+        $url = str_replace('/api/', '', $url);
+        $this->{$url . "Action"}();
     }
 
     public function action()
@@ -88,21 +108,19 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 发送跨域 HEADER
-     *
-     * @return void
      */
     private function sendCORS()
     {
-        $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
+        $httpHost = $this->request->getServer('HTTP_HOST');
         $this->response->setHeader('Access-Control-Allow-Credentials', 'true');
-        $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->origin));
+        $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->offsetGet('origin')));
 
-        if (!$httpOrigin) {
-            return;
+        if (!$httpHost) {
+            $this->throwError('非法请求！');
         }
 
-        if (in_array($httpOrigin, $allowedHttpOrigins)) {
-            $this->response->setHeader('Access-Control-Allow-Origin', $httpOrigin);
+        if (in_array($httpHost, $allowedHttpOrigins)) {
+            $this->response->setHeader('Access-Control-Allow-Origin', $httpHost);
         }
 
         if (strtolower($this->request->getServer('REQUEST_METHOD')) == 'options') {
@@ -208,8 +226,12 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('This API has been disabled.', 403);
         }
         $token = $this->request->getHeader('token');
-        if (!empty($token) && $token != $this->config->apiToken) {
-            $this->throwError('apiToken is invalid', 403);
+        // 为空不校验
+        if (!empty($this->config->apiToken)) {
+            // 校验token
+            if (empty($token) || $token != $this->config->apiToken) {
+                $this->throwError('apiToken is invalid', 403);
+            }
         }
     }
 
@@ -241,6 +263,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 );
             }
         }
+
         return $result;
     }
 
@@ -295,7 +318,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                     ));
                 } else {
                     foreach ($cids as $key => $cid) {
-                        $cids[$key] = $cids[$key]['cid'];
+                        $cids[$key] = $cid['cid'];
                     }
                 }
             }
@@ -308,7 +331,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->where('status = ?', 'publish')
             ->where('created < ?', time())
             ->where('password IS NULL')
-            ->order('created', Typecho_Db::SORT_DESC);
+            ->order('created', Db::SORT_DESC);
         if (isset($cids)) {
             $cidStr = implode(',', $cids);
             $select->where('cid IN (' . $cidStr . ')');
@@ -332,11 +355,11 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                     explode("<!--more-->", $result[$key]['text'])[0]
                 );
 
-                $result[$key] = $this->filter($result[$key]);
+                $result[$key] = $this->articleFilter($result[$key]);
             } elseif ($showDigest === 'excerpt') {
                 // if you use 'excerpt', plugin will truncate for certain number of text
                 $limit = (int)trim($this->getParams('limit', '200'));
-                $result[$key] = $this->filter($result[$key]);
+                $result[$key] = $this->articleFilter($value);
                 $result[$key]['digest'] = mb_substr(
                         htmlspecialchars_decode(strip_tags($result[$key]['text'])),
                         0,
@@ -344,7 +367,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                         'utf-8'
                     ) . "...";
             } else {
-                $result[$key] = $this->filter($result[$key]);
+                $result[$key] = $this->articleFilter($value);
             }
 
 
@@ -379,7 +402,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->where('status = ?', 'publish')
             ->where('created < ?', time())
             ->where('password IS NULL')
-            ->order('order', Typecho_Db::SORT_ASC);
+            ->order('order', Db::SORT_ASC);
 
         $result = $this->db->fetchAll($select);
         $count = count($result);
@@ -399,16 +422,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $this->lockMethod('get');
         $this->checkState('categories');
-        $categories = $this->widget('Widget_Metas_Category_List');
-
-        if (isset($categories->stack)) {
-            $this->throwData($categories->stack);
-        } else {
-            $reflect = new ReflectionObject($categories);
-            $map = $reflect->getProperty('_map');
-            $map->setAccessible(true);
-            $this->throwData(array_merge($map->getValue($categories)));
-        }
+//        $categories = $this->db->fetchAll(Contents::alloc()->select('*')->where('type = ?', 'page'));
+        $categories = $this->db->fetchAll(Metas::alloc()->select('*')->where('type = ?', 'category'));
+        $this->throwData($categories);
     }
 
     /**
@@ -458,8 +474,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
 
         $result = $this->db->fetchRow($select);
-        if (count($result) != 0) {
-            $result = $this->filter($result);
+        if (!empty($result) && count($result) != 0) {
+            $result = $this->articleFilter($result);
             $result['csrfToken'] = $this->generateCsrfToken($result['permalink']);
             $this->throwData($result);
         } else {
@@ -482,7 +498,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->select('coid', 'cid', 'author', 'text')
             ->from('table.comments')
             ->where('type = ? AND status = ?', 'comment', 'approved')
-            ->order('created', Typecho_Db::SORT_DESC)
+            ->order('created', Db::SORT_DESC)
             ->limit($size);
         $result = $this->db->fetchAll($query);
 
@@ -511,8 +527,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $order = strtolower($this->getParams('order', ''));
 
         // 为带 cookie 请求的用户显示正在等待审核的评论
-        $author = Typecho_Cookie::get('__typecho_remember_author');
-        $mail = Typecho_Cookie::get('__typecho_remember_mail');
+        $author = Cookie::get('__typecho_remember_author');
+        $mail = Cookie::get('__typecho_remember_mail');
 
         if (empty($cid) && empty($slug)) {
             $this->throwError('No specified posts.', 404);
@@ -521,10 +537,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $select = $this->db
             ->select('table.comments.coid', 'table.comments.parent', 'table.comments.cid', 'table.comments.created', 'table.comments.author', 'table.comments.mail', 'table.comments.url', 'table.comments.text', 'table.comments.status')
             ->from('table.comments')
-            ->join('table.contents', 'table.comments.cid = table.contents.cid', Typecho_Db::LEFT_JOIN)
+            ->join('table.contents', 'table.comments.cid = table.contents.cid', Db::LEFT_JOIN)
             ->where('table.comments.type = ?', 'comment')
             ->group('table.comments.coid')
-            ->order('table.comments.created', $order === 'asc' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
+            ->order('table.comments.created', $order === 'asc' ? Db::SORT_ASC : Db::SORT_DESC);
 
         if (empty($author)) {
             $select->where('table.comments.status = ?', 'approved');
@@ -600,7 +616,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
         $result = $this->db->fetchRow($select);
         if (count($result) != 0) {
-            $result = $this->filter($result);
+            $result = $this->articleFilter($result);
         } else {
             $this->throwError('post not exists', 404);
         }
@@ -621,7 +637,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $ownerId = $this->getParams('ownerId', '');
         $url = $this->getParams('url', '');
 
-        $uid = Typecho_Cookie::get('__typecho_uid'); // 登录的话忽略传值
+        $uid = Cookie::get('__typecho_uid'); // 登录的话忽略传值
         if (!empty($uid)) {
             $authorId = $uid;
         }
@@ -642,7 +658,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         $query = $this->db->select()
             ->from('table.comments')
             ->where('author = ?', $this->getParams('author', ''))
-            ->order('created', Typecho_Db::SORT_DESC);
+            ->order('created', Db::SORT_DESC);
         $res = $this->db->fetchRow($query);
         $this->throwData($res);
     }
@@ -716,7 +732,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 ->where('authorId = ?', $value['uid']);
             $posts = $this->db->fetchAll($postSelector);
             foreach ($posts as $postNumber => $post) {
-                $posts[$postNumber] = $this->filter($post);
+                $posts[$postNumber] = $this->articleFilter($post);
             }
 
             array_push($users, array(
@@ -753,7 +769,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             ->where('status = ?', 'publish')
             ->where('password IS NULL')
             ->where('type = ?', 'post')
-            ->order('created', $order === 'asc' ? Typecho_Db::SORT_ASC : Typecho_Db::SORT_DESC);
+            ->order('created', $order === 'asc' ? Db::SORT_ASC : Db::SORT_DESC);
         $posts = $this->db->fetchAll($select);
 
         $archives = array();
@@ -767,10 +783,10 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                     explode("<!--more-->", $post['text'])[0]
                 );
 
-                $post = $this->filter($post);
+                $post = $this->articleFilter($post);
             } elseif ($showDigest === 'excerpt') {
                 $limit = (int)trim($this->getParams('limit', '200'));
-                $post = $this->filter($post);
+                $post = $this->articleFilter($post);
                 $post['digest'] = mb_substr(
                         htmlspecialchars_decode(strip_tags($post['text'])),
                         0,
@@ -778,7 +794,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                         'utf-8'
                     ) . "...";
             } else {
-                $post = $this->filter($post);
+                $post = $this->articleFilter($post);
             }
 
             if (!$showContent) {
@@ -1057,10 +1073,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         if (is_null($content) || empty($content)) {
             return '';
         }
-        $contentWidget = $this->widget('Widget_Abstract_Contents');
-        return method_exists($contentWidget, 'markdown')
-            ? $contentWidget->markdown($content)
-            : MarkdownExtraExtended::defaultTransform($content);
+        return Markdown::convert($content);
     }
 
     /**
@@ -1069,9 +1082,9 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
      * @param array $value 文章详细信息数组
      * @return array
      */
-    private function filter($value)
+    private function articleFilter($value)
     {
-        $contentWidget = $this->widget('Widget_Abstract_Contents');
+        $contentWidget = Contents::alloc();
         $value['text'] = isset($value['text']) ? $value['text'] : null;
         $value['digest'] = isset($value['digest']) ? $value['digest'] : null;
 
@@ -1093,6 +1106,16 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
         }
         // Custom fields
         $value['fields'] = $this->getCustomFields($value['cid']);
+
+        // 生成permalink，1.3源码没有生成
+        $type = $value['type'];
+        $routeExists = (null != Router::get($type));
+        $value['pathinfo'] = $routeExists ? Router::url($type, $value) : '#';
+        $value['url'] = $value['permalink'] = Common::url($value['pathinfo'], $this->options->index);
+        // 补充日期
+        $value['year'] = $value['date']->year;
+        $value['month'] = $value['date']->month;
+        $value['day'] = $value['date']->day;
 
         return $value;
     }
