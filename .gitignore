@@ -4,3 +4,4 @@ vendor/
 tmp
 composer.lock
 .idea
+composer.phar

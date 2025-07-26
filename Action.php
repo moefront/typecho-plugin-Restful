@@ -361,11 +361,11 @@ class Action extends Request implements ActionInterface
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $result[$key] = $this->articleFilter($value);
                 $result[$key]['digest'] = mb_substr(
-                        htmlspecialchars_decode(strip_tags($result[$key]['text'])),
-                        0,
-                        $limit,
-                        'utf-8'
-                    ) . "...";
+                    htmlspecialchars_decode(strip_tags($result[$key]['text'])),
+                    0,
+                    $limit,
+                    'utf-8'
+                ) . "...";
             } else {
                 $result[$key] = $this->articleFilter($value);
             }
@@ -587,9 +587,9 @@ class Action extends Request implements ActionInterface
         $this->checkState('comment');
 
         $comments = new Comments($this->request, $this->response);
-        $check_key = [
+        $check_key = array(
             'text', 'mail', 'author', 'token'
-        ];
+        );
         foreach ($check_key as $key) {
             if (!$this->getParams($key, '')) {
                 $this->throwError('missing ' . $key);
@@ -788,11 +788,11 @@ class Action extends Request implements ActionInterface
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $post = $this->articleFilter($post);
                 $post['digest'] = mb_substr(
-                        htmlspecialchars_decode(strip_tags($post['text'])),
-                        0,
-                        $limit,
-                        'utf-8'
-                    ) . "...";
+                    htmlspecialchars_decode(strip_tags($post['text'])),
+                    0,
+                    $limit,
+                    'utf-8'
+                ) . "...";
             } else {
                 $post = $this->articleFilter($post);
             }
@@ -860,9 +860,9 @@ class Action extends Request implements ActionInterface
 
         $contents = new Contents($this->request, $this->response);
 
-        $check_key = [
+        $check_key = array(
             'title', 'text', 'authorId'
-        ];
+        );
         foreach ($check_key as $key) {
             if (!$this->getParams($key, '')) {
                 $this->throwError('missing ' . $key);
@@ -885,12 +885,12 @@ class Action extends Request implements ActionInterface
             }
             $articleData = $this->db->fetchRow($article);
 
-            $postData = [
+            $postData = array(
                 'title' => $title,
                 'text' => $text,
                 'authorId' => $authorId,
                 'slug' => $slug,
-            ];
+            );
             $type = 'add';
             if (!empty($articleData)) {
                 // 更新
@@ -916,7 +916,7 @@ class Action extends Request implements ActionInterface
                 }
 
                 $midArray = explode(',', $mid);
-                $values = [];
+                $values = array();
                 foreach ($midArray as $mid) {
                     $values[] = '(' . $cid . ', ' . $mid . ')';
                 }
@@ -952,11 +952,11 @@ class Action extends Request implements ActionInterface
         if ($type != 'category' && $type != 'tag') {
             $this->throwError('type must be category or tag');
         }
-        $res = $this->db->query($this->db->insert('table.metas')->rows([
+        $res = $this->db->query($this->db->insert('table.metas')->rows(array(
             'name' => $name,
             'type' => $type,
             'slug' => empty($slug) ? $name : $slug,
-        ]));
+        )));
         $this->throwData($res);
     }
 
