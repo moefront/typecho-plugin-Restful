@@ -442,11 +442,7 @@ class Action extends Request implements ActionInterface
             ->from('table.metas')
             ->where("type = 'tag'");
         $result = $this->db->fetchAll($tags);
-        if (count($result) != 0) {
-            $this->throwData($result);
-        } else {
-            $this->throwError('no tag', 404);
-        }
+        $this->throwData($result);
     }
 
     /**
