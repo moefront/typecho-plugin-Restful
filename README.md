@@ -169,6 +169,34 @@ PS: mid是因为typecho分类跟标签是同一个表。
 | type | string | 类型（category/tag） | 必须 |
 | slug | string | 别名               | 可选 |
 
+### 上传文件
+
+`POST /api/upload`
+
+| 参数       | 类型   | 描述   |    |
+|----------|------|------|----|
+| file     | file | 文件   | 必须 |
+| cid      | int  | 文章id | 可选 |
+| authorId | int  | 作者id | 可选 |
+
+### 删除文件
+
+`POST /api/deleteFile`
+
+| 参数  | 类型  | 描述   |    |
+|-----|-----|------|----|
+| cid | int | 文件id | 必须 |
+
+### 文件列表
+
+`POST /api/fileList`
+
+| 参数       | 类型  | 描述   |    |
+|----------|-----|------|----|
+| page     | int | 第几页  | 可选 |
+| pageSize | int | 每页几个 | 可选 |
+| authorId | int | 作者id | 可选 |
+
 ## 其它
 
 ### 自定义 URI 前缀

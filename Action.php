@@ -17,6 +17,7 @@ use Widget\Base\Comments;
 use Widget\Base\Contents;
 use Widget\Base\Metas;
 use Widget\Options;
+use Widget\Upload;
 
 if (!defined('__TYPECHO_ROOT_DIR__')) {
     exit;
@@ -46,6 +47,14 @@ class Action extends Request implements ActionInterface
 
     protected \Typecho\Widget\Request $request;
     protected \Typecho\Widget\Response $response;
+
+    /**
+     * @var array
+     * 指定路由短名在 POST 时跳过 JSON 解析报错
+     * 例如: ['upload', 'anotherRoute']
+     */
+    private array $jsonParseSkipRoutes = ['upload'];
+
 
     public function __construct($request, $response, $params = null)
     {
@@ -139,9 +148,20 @@ class Action extends Request implements ActionInterface
     private function parseRequest()
     {
         if ($this->request->isPost()) {
+            $pathInfo = (string) $this->request->getPathInfo();
+            $prefix = defined('__TYPECHO_RESTFUL_PREFIX__') ? __TYPECHO_RESTFUL_PREFIX__ : '/api/';
+            $shortRoute = trim(str_replace($prefix, '', $pathInfo), '/');
+            if (false !== ($pos = strpos($shortRoute, '/'))) {
+                $shortRoute = substr($shortRoute, 0, $pos);
+            }
             $data = file_get_contents('php://input');
             $data = json_decode($data, true);
-            if (json_last_error() != JSON_ERROR_NONE) {
+            if ($data !== '' && json_last_error() != JSON_ERROR_NONE) {
+                // 命中跳过列表则不抛错
+                if (in_array($shortRoute, $this->jsonParseSkipRoutes, true)) {
+                    $this->httpParams = array();
+                    return;
+                }
                 $this->throwError('Parse JSON error');
             }
             $this->httpParams = $data;
@@ -361,11 +381,11 @@ class Action extends Request implements ActionInterface
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $result[$key] = $this->articleFilter($value);
                 $result[$key]['digest'] = mb_substr(
-                    htmlspecialchars_decode(strip_tags($result[$key]['text'])),
-                    0,
-                    $limit,
-                    'utf-8'
-                ) . "...";
+                        htmlspecialchars_decode(strip_tags($result[$key]['text'])),
+                        0,
+                        $limit,
+                        'utf-8'
+                    ) . "...";
             } else {
                 $result[$key] = $this->articleFilter($value);
             }
@@ -442,11 +462,7 @@ class Action extends Request implements ActionInterface
             ->from('table.metas')
             ->where("type = 'tag'");
         $result = $this->db->fetchAll($tags);
-        if (count($result) != 0) {
-            $this->throwData($result);
-        } else {
-            $this->throwError('no tag', 404);
-        }
+        $this->throwData($result);
     }
 
     /**
@@ -788,11 +804,11 @@ class Action extends Request implements ActionInterface
                 $limit = (int)trim($this->getParams('limit', '200'));
                 $post = $this->articleFilter($post);
                 $post['digest'] = mb_substr(
-                    htmlspecialchars_decode(strip_tags($post['text'])),
-                    0,
-                    $limit,
-                    'utf-8'
-                ) . "...";
+                        htmlspecialchars_decode(strip_tags($post['text'])),
+                        0,
+                        $limit,
+                        'utf-8'
+                    ) . "...";
             } else {
                 $post = $this->articleFilter($post);
             }
@@ -958,6 +974,169 @@ class Action extends Request implements ActionInterface
             'slug' => empty($slug) ? $name : $slug,
         )));
         $this->throwData($res);
+    }
+
+    /**
+     * 上传文件
+     */
+    public function uploadAction()
+    {
+        $this->lockMethod('post');
+        $this->checkState('upload');
+        if ($this->config->validateLogin == 1 && !$this->widget('Widget_User')->hasLogin()) {
+            $this->throwError('User must be logged in', 401);
+        }
+        if (empty($_FILES)) {
+            $this->throwError('missing file');
+        }
+        $file = array_pop($_FILES);
+        if (!isset($file['error']) || 0 !== (int)$file['error'] || !is_uploaded_file($file['tmp_name'])) {
+            $this->throwError('upload failed');
+        }
+        $cid = $this->request->get('cid');
+        $authorId = $this->request->get('authorId');
+        if ($this->request->isAjax() && isset($file['name'])) {
+            $file['name'] = urldecode($file['name']);
+        }
+        $result = Upload::uploadHandle($file);
+        if (false === $result) {
+            $this->throwError('upload handle failed');
+        }
+        $u = new Upload($this->request, $this->response);
+        $struct = [
+            'title'        => $result['name'],
+            'slug'         => $result['name'],
+            'type'         => 'attachment',
+            'status'       => 'publish',
+            'text'         => json_encode($result),
+            'allowComment' => 1,
+            'allowPing'    => 0,
+            'allowFeed'    => 1
+        ];
+        if (!empty($cid)) $struct['parent'] = $cid;
+        if (!empty($authorId)) $struct['authorId'] = $authorId;
+        $insertId = $u->insert($struct);
+        $this->db->fetchRow(
+            $u->select()->where('table.contents.cid = ?', $insertId)
+                ->where('table.contents.type = ?', 'attachment'),
+            [$u, 'push']
+        );
+        $payload = [
+            $u->attachment->url,
+            [
+                'cid'       => $insertId,
+                'title'     => $u->attachment->name,
+                'type'      => $u->attachment->type,
+                'size'      => $u->attachment->size,
+                'bytes'     => number_format(ceil($u->attachment->size / 1024)) . ' Kb',
+                'isImage'   => $u->attachment->isImage,
+                'url'       => $u->attachment->url,
+                'permalink' => $u->permalink
+            ]
+        ];
+        $this->throwData($payload);
+    }
+
+    /**
+     * 删除文件
+     */
+    public function deleteFileAction()
+    {
+        $this->lockMethod('post');
+        $this->checkState('deleteFile');
+        if ($this->config->validateLogin == 1 && !$this->widget('Widget_User')->hasLogin()) {
+            $this->throwError('User must be logged in', 401);
+        }
+        $cid = $this->getParams('cid');
+        if (empty($cid)) {
+            $this->throwError('missing cid');
+        }
+        $u = new Upload($this->request, $this->response);
+        $row = $this->db->fetchRow(
+            $u->select()->where('table.contents.cid = ?', $cid)
+                ->where('table.contents.type = ?', 'attachment')->limit(1),
+            [$u, 'push']
+        );
+        if (!$u->have()) {
+            $this->throwError('file not found', 404);
+        }
+        $ok = Upload::deleteHandle(['attachment' => $u->attachment]);
+        if (!$ok) {
+            $this->throwError('delete file failed', 500);
+        }
+        $affected = $u->delete($this->db->sql()->where('cid = ?', $cid));
+        if ($affected <= 0) {
+            $this->throwError('delete db failed', 500);
+        }
+        $this->throwData(['deleted' => true, 'cid' => (int)$cid]);
+    }
+
+    /**
+     * 文件列表
+     * GET /api/fileList?page=1&pageSize=10
+     */
+    public function fileListAction()
+    {
+        $this->lockMethod('get');
+        $this->checkState('fileList');
+        $page = max(1, (int)$this->request->get('page', 1));
+        $pageSize = max(1, min(100, (int)$this->request->get('pageSize', 10)));
+        $authorId = (int)$this->request->get('authorId');
+        $offset = ($page - 1) * $pageSize;
+
+        $countQuery = $this->db->select(['COUNT(1)' => 'num'])->from('table.contents')
+            ->where('type = ?', 'attachment');
+        if ($authorId > 0) {
+            $countQuery->where('authorId = ?', $authorId);
+        }
+        $count = (int)$this->db->fetchObject($countQuery)->num;
+
+        $listQuery = $this->db->select('cid', 'title', 'text', 'created', 'authorId')
+            ->from('table.contents')
+            ->where('type = ?', 'attachment')
+            ->order('created', \Typecho\Db::SORT_DESC)
+            ->offset($offset)->limit($pageSize);
+        if ($authorId > 0) {
+            $listQuery->where('authorId = ?', $authorId);
+        }
+
+        $rows = $this->db->fetchAll($listQuery);
+
+        $list = [];
+        foreach ($rows as $r) {
+            $meta = [];
+            if (!empty($r['text'])) {
+                $decoded = json_decode($r['text'], true);
+                if (is_array($decoded)) {
+                    $meta = $decoded;
+                }
+            }
+            $url = null;
+            if (isset($meta['path'])) {
+                $cfg = new \Typecho\Config($meta);
+                $url = \Widget\Upload::attachmentHandle($cfg);
+            }
+            $list[] = [
+                'cid'      => (int)$r['cid'],
+                'title'    => $r['title'],
+                'size'     => isset($meta['size']) ? (int)$meta['size'] : null,
+                'type'     => $meta['type'] ?? null,
+                'mime'     => $meta['mime'] ?? null,
+                'path'     => $meta['path'] ?? null,
+                'url'      => $url,
+                'created'  => (int)$r['created'],
+                'createdAt' => date('Y-m-d H:i:s', (int)$r['created']),
+                'authorId' => (int)$r['authorId'],
+            ];
+        }
+
+        $this->throwData([
+            'dataSet'  => $list,
+            'page'     => $page,
+            'pageSize' => $pageSize,
+            'count'    => $count,
+            'pages'    => (int)ceil($count / $pageSize),
+        ]);
     }
 
     /**
