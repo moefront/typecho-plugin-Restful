@@ -148,7 +148,7 @@ class Action extends Request implements ActionInterface
     private function parseRequest()
     {
         if ($this->request->isPost()) {
-            $pathInfo = (string) $this->request->getPathInfo();
+            $pathInfo = (string)$this->request->getPathInfo();
             $prefix = defined('__TYPECHO_RESTFUL_PREFIX__') ? __TYPECHO_RESTFUL_PREFIX__ : '/api/';
             $shortRoute = trim(str_replace($prefix, '', $pathInfo), '/');
             if (false !== ($pos = strpos($shortRoute, '/'))) {
@@ -987,17 +987,84 @@ class Action extends Request implements ActionInterface
             $this->throwError('User must be logged in', 401);
         }
         if (empty($_FILES)) {
-            $this->throwError('missing file');
-        }
-        $file = array_pop($_FILES);
-        if (!isset($file['error']) || 0 !== (int)$file['error'] || !is_uploaded_file($file['tmp_name'])) {
-            $this->throwError('upload failed');
+            // 兼容前端以 Uint8Array 通过 POST 发送的文件数据
+            // 1) 尝试从请求参数中取
+            $postBytes = $this->request->get('file', null, $exists);
+            $fileNameParam = $this->request->get('fileName') ?: $this->request->get('name');
+
+            // 2) 若取不到，则尝试解析原始请求体（常见于 application/json）
+            if (!$exists || $postBytes === null) {
+                $raw = file_get_contents('php://input');
+                if (is_string($raw) && $raw !== '') {
+                    $json = json_decode($raw, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
+                        if (isset($json['file'])) {
+                            $postBytes = $json['file'];
+                        }
+                        if (!$fileNameParam && isset($json['fileName'])) {
+                            $fileNameParam = $json['fileName'];
+                        } elseif (!$fileNameParam && isset($json['name'])) {
+                            $fileNameParam = $json['name'];
+                        }
+                    }
+                }
+            }
+
+            if ($postBytes === null) {
+                $this->throwError('missing file');
+            }
+
+            // 3) 处理可能的多种表示形式
+            // - 数字数组（Uint8Array）
+            // - base64 字符串（data:*;base64,xxx 或纯 base64）
+            // - 纯二进制字符串（不推荐，但做兜底）
+            $binary = null;
+            if (is_array($postBytes)) {
+                if (empty($postBytes)) {
+                    $this->throwError('missing file');
+                }
+                $bytes = array_map(static function ($v) {
+                    $v = (int)$v;
+                    if ($v < 0) $v = 0;
+                    if ($v > 255) $v = 255;
+                    return $v;
+                }, $postBytes);
+                $binary = pack('C*', ...$bytes);
+            } elseif (is_string($postBytes)) {
+                // data URL 或 base64
+                if (strpos($postBytes, 'base64,') !== false) {
+                    $base64 = substr($postBytes, strpos($postBytes, 'base64,') + 7);
+                    $binary = base64_decode($base64, true);
+                } else {
+                    // 尝试按 base64 解码，不合法则当作原始二进制
+                    $decoded = base64_decode($postBytes, true);
+                    $binary = ($decoded !== false) ? $decoded : $postBytes;
+                }
+            } else {
+                $this->throwError('missing file');
+            }
+
+            $name = $fileNameParam ?: 'upload.bin';
+            if ($this->request->isAjax() && $name) {
+                $name = urldecode($name);
+            }
+
+            $file = [
+                'name'  => $name,
+                'bytes' => $binary,
+                'size'  => strlen($binary),
+            ];
+        } else {
+            $file = array_pop($_FILES);
+            if (!isset($file['error']) || 0 !== (int)$file['error'] || !is_uploaded_file($file['tmp_name'])) {
+                $this->throwError('upload failed');
+            }
+            if ($this->request->isAjax() && isset($file['name'])) {
+                $file['name'] = urldecode($file['name']);
+            }
         }
         $cid = $this->request->get('cid');
         $authorId = $this->request->get('authorId');
-        if ($this->request->isAjax() && isset($file['name'])) {
-            $file['name'] = urldecode($file['name']);
-        }
         $result = Upload::uploadHandle($file);
         if (false === $result) {
             $this->throwError('upload handle failed');
@@ -1117,25 +1184,25 @@ class Action extends Request implements ActionInterface
                 $url = \Widget\Upload::attachmentHandle($cfg);
             }
             $list[] = [
-                'cid'      => (int)$r['cid'],
-                'title'    => $r['title'],
-                'size'     => isset($meta['size']) ? (int)$meta['size'] : null,
-                'type'     => $meta['type'] ?? null,
-                'mime'     => $meta['mime'] ?? null,
-                'path'     => $meta['path'] ?? null,
-                'url'      => $url,
-                'created'  => (int)$r['created'],
+                'cid' => (int)$r['cid'],
+                'title' => $r['title'],
+                'size' => isset($meta['size']) ? (int)$meta['size'] : null,
+                'type' => $meta['type'] ?? null,
+                'mime' => $meta['mime'] ?? null,
+                'path' => $meta['path'] ?? null,
+                'url' => $url,
+                'created' => (int)$r['created'],
                 'createdAt' => date('Y-m-d H:i:s', (int)$r['created']),
                 'authorId' => (int)$r['authorId'],
             ];
         }
 
         $this->throwData([
-            'dataSet'  => $list,
-            'page'     => $page,
+            'dataSet' => $list,
+            'page' => $page,
             'pageSize' => $pageSize,
-            'count'    => $count,
-            'pages'    => (int)ceil($count / $pageSize),
+            'count' => $count,
+            'pages' => (int)ceil($count / $pageSize),
         ]);
     }
 
