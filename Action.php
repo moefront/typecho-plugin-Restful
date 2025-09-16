@@ -48,6 +48,8 @@ class Action extends Request implements ActionInterface
     protected \Typecho\Widget\Request $request;
     protected \Typecho\Widget\Response $response;
 
+
+    protected $version;
     /**
      * @var array
      * 指定路由短名在 POST 时跳过 JSON 解析报错
@@ -66,6 +68,7 @@ class Action extends Request implements ActionInterface
         $this->config = $this->options->plugin('Restful');
         $this->request = $request;
         $this->response = $response;
+        $this->version = \Typecho\Common::VERSION;
     }
 
     /**
@@ -1050,9 +1053,9 @@ class Action extends Request implements ActionInterface
             }
 
             $file = [
-                'name'  => $name,
+                'name' => $name,
                 'bytes' => $binary,
-                'size'  => strlen($binary),
+                'size' => strlen($binary),
             ];
         } else {
             $file = array_pop($_FILES);
@@ -1071,14 +1074,14 @@ class Action extends Request implements ActionInterface
         }
         $u = new Upload($this->request, $this->response);
         $struct = [
-            'title'        => $result['name'],
-            'slug'         => $result['name'],
-            'type'         => 'attachment',
-            'status'       => 'publish',
-            'text'         => json_encode($result),
+            'title' => $result['name'],
+            'slug' => $result['name'],
+            'type' => 'attachment',
+            'status' => 'publish',
+            'text' => json_encode($result),
             'allowComment' => 1,
-            'allowPing'    => 0,
-            'allowFeed'    => 1
+            'allowPing' => 0,
+            'allowFeed' => 1
         ];
         if (!empty($cid)) $struct['parent'] = $cid;
         if (!empty($authorId)) $struct['authorId'] = $authorId;
@@ -1091,13 +1094,13 @@ class Action extends Request implements ActionInterface
         $payload = [
             $u->attachment->url,
             [
-                'cid'       => $insertId,
-                'title'     => $u->attachment->name,
-                'type'      => $u->attachment->type,
-                'size'      => $u->attachment->size,
-                'bytes'     => number_format(ceil($u->attachment->size / 1024)) . ' Kb',
-                'isImage'   => $u->attachment->isImage,
-                'url'       => $u->attachment->url,
+                'cid' => $insertId,
+                'title' => $u->attachment->name,
+                'type' => $u->attachment->type,
+                'size' => $u->attachment->size,
+                'bytes' => number_format(ceil($u->attachment->size / 1024)) . ' Kb',
+                'isImage' => $u->attachment->isImage,
+                'url' => $u->attachment->url,
                 'permalink' => $u->permalink
             ]
         ];
@@ -1119,18 +1122,14 @@ class Action extends Request implements ActionInterface
             $this->throwError('missing cid');
         }
         $u = new Upload($this->request, $this->response);
-        $row = $this->db->fetchRow(
-            $u->select()->where('table.contents.cid = ?', $cid)
-                ->where('table.contents.type = ?', 'attachment')->limit(1),
-            [$u, 'push']
-        );
-        if (!$u->have()) {
+        $select = $this->db->select('cid,text')->where('table.contents.cid = ?', $cid)
+            ->where('table.contents.type = ?', 'attachment')->from('table.contents')->limit(1);
+        $row = $this->db->fetchRow($select);
+        if (empty($row)) {
             $this->throwError('file not found', 404);
         }
-        $ok = Upload::deleteHandle(['attachment' => $u->attachment]);
-        if (!$ok) {
-            $this->throwError('delete file failed', 500);
-        }
+        $row['text'] = json_decode($row['text'], true);
+        @unlink(__TYPECHO_ROOT_DIR__ . '/' . $row['text']['path']);
         $affected = $u->delete($this->db->sql()->where('cid = ?', $cid));
         if ($affected <= 0) {
             $this->throwError('delete db failed', 500);
@@ -1181,7 +1180,11 @@ class Action extends Request implements ActionInterface
             $url = null;
             if (isset($meta['path'])) {
                 $cfg = new \Typecho\Config($meta);
-                $url = \Widget\Upload::attachmentHandle($cfg);
+                if (version_compare($this->version, '1.3.0', '>=')) {
+                    $url = \Widget\Upload::attachmentHandle($cfg);
+                } else {
+                    $url = \Widget\Upload::attachmentHandle($cfg->toArray());
+                }
             }
             $list[] = [
                 'cid' => (int)$r['cid'],
