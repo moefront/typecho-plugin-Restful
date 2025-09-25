@@ -23,12 +23,29 @@ class Restful_Plugin implements Typecho_Plugin_Interface
      */
     public static function activate()
     {
+        $db = Typecho_Db::get();
+        $prefix = $db->getPrefix();
         $routes = call_user_func(array(self::ACTION_CLASS, 'getRoutes'));
         foreach ($routes as $route) {
             Helper::addRoute($route['name'], $route['uri'], self::ACTION_CLASS, $route['action']);
         }
         Typecho_Plugin::factory('Widget_Feedback')->comment = array(__CLASS__, 'comment');
+        // 创建登录尝试记录表
+        $sql = "CREATE TABLE IF NOT EXISTS `{$prefix}login_attempts` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `ip` varchar(50) NOT NULL DEFAULT '',
+            `username` varchar(100) NOT NULL DEFAULT '',
+            `created` int(11) NOT NULL DEFAULT '0',
+            PRIMARY KEY (`id`),
+            KEY `ip` (`ip`),
+            KEY `created` (`created`)
+        ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;";
 
+        try {
+            $db->query($sql, Typecho_Db::WRITE);
+        } catch (Exception $e) {
+
+        }
         return '_(:з」∠)_';
     }
 
@@ -95,6 +112,17 @@ class Restful_Plugin implements Typecho_Plugin_Interface
         /* API token */
         $apiToken = new Typecho_Widget_Helper_Form_Element_Text('apiToken', null, '123456', _t('APITOKEN'), _t('api请求需要携带的token，设置为空就不校验。'));
         $form->addInput($apiToken);
+
+        /* 登录尝试次数 */
+        $attemptCount = new Typecho_Widget_Helper_Form_Element_Text('attemptCount', null, 5, _t('登录api的登录尝试次数'), _t('登录api的登录尝试次数，超过后将被封禁。'));
+        $form->addInput($attemptCount);
+
+        /* 登录失败封建时间 */
+        $banTimeOut = new Typecho_Widget_Helper_Form_Element_Text('banTimeOut', null, 900, _t('超过登录尝试次数后封禁时间（秒）'), _t('设置超过登录尝试次数后被封禁的时间，单位为秒。'));
+        $form->addInput($banTimeOut);
+        /* 登录密码加密盐 */
+        $secretKey = new Typecho_Widget_Helper_Form_Element_Text('secretKey', null, 'Q23Ch5rHYXFPere06VeyBD9u1W0DDj', _t('登录密码加密盐'), _t('请务必修改本参数，以防止跨站攻击。'));
+        $form->addInput($secretKey);
 
         /* 高敏接口是否校验登录用户 */
         $validateLogin = new Typecho_Widget_Helper_Form_Element_Radio('validateLogin', array(

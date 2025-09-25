@@ -169,6 +169,31 @@ PS: mid是因为typecho分类跟标签是同一个表。
 | type | string | 类型（category/tag） | 必须 |
 | slug | string | 别名               | 可选 |
 
+### 登录账号
+
+`POST /api/login`
+
+| 参数        | 类型     | 描述             |    |
+|-----------|--------|----------------|----|
+| name      | string | 用户名            | 必须 |
+| password  | string | 加密后的密码         | 必须 |
+| timestamp | string | 当前 Unix 时间戳（秒） | 必须 |
+| remember | bool   | 是否记住登录         | 可选 |
+
+PS:为了防止重放攻击和中间人攻击，密码需要进行加密后进行传输。
+登录成功将返回typecho的cookie可以直接使用
+
+密码使用使用 AES-128-CBC 模式加密，
+
+#### 密码加密方法
+1. 使用 HMAC-SHA256 算法根据timestamp生成动态密钥
+2. 使用 AES-128-CBC 模式加密密码
+   1. 将 动态密钥 转换为 16 字节长度
+   2. 生成 16 字节随机 IV
+   3. 使用 AES-128-CBC 加密密码（key为16字节长度动态密钥，iv为随机IV）
+   4. 将IV与加密后端密码组合为一个字符串
+   5. 将组合后的字符串进行base64编码
+
 ## 其它
 
 ### 自定义 URI 前缀

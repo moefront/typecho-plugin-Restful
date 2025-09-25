@@ -95,7 +95,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     {
         $httpOrigin = $this->request->getServer('HTTP_ORIGIN');
         $this->response->setHeader('Access-Control-Allow-Credentials', 'true');
-        $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->origin));
+        $allowedHttpOrigins = explode("\n", str_replace("\r", "", $this->config->origin ?? ''));
 
         if (!$httpOrigin) {
             return;
@@ -949,6 +949,141 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
     }
 
     /**
+     * 用户登录接口
+     *
+     * @return void
+     */
+    public function loginAction()
+    {
+        $this->lockMethod('post');
+        $this->checkState('login');
+        $this->checkLoginAttempts();
+        $name = $this->getParams('name', '');
+        $remember = $this->getParams('remember', false);
+        $secretKey = $this->config->secretKey ?? '';
+        $timestamp = $this->getParams('timestamp', '');;
+        $encryptedPassword = $this->getParams('password', '');
+
+        if (empty($timestamp)||empty($encryptedPassword)) {
+            $this->throwError('参数错误', 400);
+        }
+        if (abs(time() - $timestamp) > 30) {
+            $this->throwError('请求过期', 400);
+        }
+        // 计算 dynamicKey
+        $dynamicKey = hash_hmac('sha256', $timestamp, $secretKey);
+        // 解密密码
+        $data = base64_decode($encryptedPassword);
+        $method = 'AES-128-CBC';
+        $ivLength = openssl_cipher_iv_length($method);
+        $iv = substr($data, 0, $ivLength);
+        $encrypted = substr($data, $ivLength);
+
+        $password = openssl_decrypt(
+            $encrypted,
+            $method,
+            $dynamicKey,
+            OPENSSL_RAW_DATA,
+            $iv
+        );
+        //解密错误
+        if ($password === false) {
+            $this->throwError('参数错误', 400);
+        }
+        if (empty($name) || empty($password)) {
+            $this->throwError('用户名和密码不能为空', 400);
+        }
+        // 使用 OpenSSL 或 PHP 库解密
+
+        $user = $this->widget('Widget_User');
+
+        try {
+            $result = $user->login($name, $password, false, $remember ? 30 * 24 * 3600 : 0);
+
+            if (!$result) {
+                $this->recordFailedLogin($name);
+                $this->throwError('用户名或密码错误', 401);
+            }
+            $this->clearFailedLoginAttempts($name);
+            $cookies = array();
+            $prefix = $this->widget('Widget_Options')->cookiePrefix;
+
+            $uidCookie = Typecho_Cookie::get($prefix . '__typecho_uid');
+            $authCodeCookie = Typecho_Cookie::get($prefix . '__typecho_authCode');
+
+            if ($uidCookie && $authCodeCookie) {
+                $cookies[$prefix . '__typecho_uid'] = $uidCookie;
+                $cookies[$prefix . '__typecho_authCode'] = $authCodeCookie;
+            }
+
+            $this->throwData(array(
+                'message' => '登录成功',
+                'cookies' => $cookies,
+                'user' => array(
+                    'uid' => $user->uid,
+                    'name' => $user->name,
+                    'screenName' => $user->screenName,
+                    'mail' => $user->mail
+                )
+            ));
+
+        } catch (Exception $e) {
+            $this->recordFailedLogin($name);
+            $this->throwError('登录失败: ' . $e->getMessage(), 401);
+        }
+    }
+
+    /**
+     * 检查登录尝试次数
+     */
+    private function checkLoginAttempts()
+    {
+        $ip = $this->request->getServer('REMOTE_ADDR');
+        $timeout = $this->config->banTimeOut ?? 900;
+        $this->db->query($this->db->sql()
+            ->delete('table.login_attempts')
+            ->where('created < ?', time() - $timeout));
+
+        $attemptCount = $this->db->fetchObject($this->db->select(array('COUNT(*)' => 'count'))
+            ->from('table.login_attempts')
+            ->where('ip = ?', $ip)
+            ->where('created > ?', time() - $timeout))->count;
+
+        $maxAttempts = $this->config->attemptCount ?? 5;
+
+        if ($attemptCount >= $maxAttempts) {
+            $this->throwError('登录失败次数过多', 429);
+        }
+    }
+
+    /**
+     * 记录失败的登录尝试
+     */
+    private function recordFailedLogin($username)
+    {
+        $ip = $this->request->getServer('REMOTE_ADDR');
+
+        $this->db->query($this->db->insert('table.login_attempts')->rows(array(
+            'ip' => $ip,
+            'username' => $username ?: '',
+            'created' => time()
+        )));
+    }
+
+    /**
+     * 清除登录失败记录
+     */
+    private function clearFailedLoginAttempts($username)
+    {
+        $ip = $this->request->getServer('REMOTE_ADDR');
+
+        $this->db->query($this->db->sql()
+            ->delete('table.login_attempts')
+            ->where('ip = ?', $ip));
+    }
+
+
+    /**
      * 插件更新接口
      *
      * @return void
@@ -1159,4 +1294,6 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
                 ->where('mid = ?', $tag['mid']));
         }
     }
+
+
 }
