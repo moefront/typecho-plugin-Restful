@@ -832,6 +832,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 发表文章
+     *
+     * @return void
      */
     public function postArticleAction()
     {
@@ -919,6 +921,8 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
 
     /**
      * 新增标签/分类
+     *
+     * @return void
      */
     public function addMetasAction()
     {
