@@ -208,7 +208,7 @@ class Restful_Action extends Typecho_Widget implements Widget_Interface_Do
             $this->throwError('This API has been disabled.', 403);
         }
         $token = $this->request->getHeader('token');
-        if (!empty($token) && $token != $this->config->apiToken) {
+        if ($this->config->apiToken && $token != $this->config->apiToken) {
             $this->throwError('apiToken is invalid', 403);
         }
     }
